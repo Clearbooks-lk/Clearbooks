@@ -2799,26 +2799,51 @@ function initRepDates(){
   if(acctSel){
     const prev = acctSel.value;
     acctSel.innerHTML = '<option value="">— Select account —</option><option value="__all__">All Accounts</option>';
-    // Group by kind
+
+    // Assets
     const assets = S.accounts.filter(a=>a.kind==='asset');
-    const liabs  = S.accounts.filter(a=>a.kind==='liability');
     if(assets.length){
-      const og = document.createElement('optgroup');
-      og.label = 'Assets';
+      const og = document.createElement('optgroup'); og.label = '── Assets';
       assets.sort((a,b)=>a.name.localeCompare(b.name)).forEach(a=>{
-        const o=document.createElement('option'); o.value=a.id; o.textContent=`${ASSET_ICONS[a.type]||'◈'} ${a.name}`;
-        if(a.id===prev) o.selected=true;
-        og.appendChild(o);
+        const o=document.createElement('option'); o.value=a.id;
+        o.textContent=`${ASSET_ICONS[a.type]||'◈'} ${a.name}`;
+        if(a.id===prev) o.selected=true; og.appendChild(o);
       });
       acctSel.appendChild(og);
     }
+
+    // Liabilities
+    const liabs = S.accounts.filter(a=>a.kind==='liability');
     if(liabs.length){
-      const og = document.createElement('optgroup');
-      og.label = 'Liabilities';
+      const og = document.createElement('optgroup'); og.label = '── Liabilities';
       liabs.sort((a,b)=>a.name.localeCompare(b.name)).forEach(a=>{
-        const o=document.createElement('option'); o.value=a.id; o.textContent=`${LIAB_ICONS[a.type]||'◈'} ${a.name}`;
-        if(a.id===prev) o.selected=true;
-        og.appendChild(o);
+        const o=document.createElement('option'); o.value=a.id;
+        o.textContent=`${LIAB_ICONS[a.type]||'◈'} ${a.name}`;
+        if(a.id===prev) o.selected=true; og.appendChild(o);
+      });
+      acctSel.appendChild(og);
+    }
+
+    // Income categories
+    const incCats = (S.incCats||DEFAULT_INC_CATS).sort();
+    if(incCats.length){
+      const og = document.createElement('optgroup'); og.label = '── Income Categories';
+      incCats.forEach(c=>{
+        const o=document.createElement('option'); o.value='__inc__'+c;
+        o.textContent='📥 '+c;
+        if(('__inc__'+c)===prev) o.selected=true; og.appendChild(o);
+      });
+      acctSel.appendChild(og);
+    }
+
+    // Expense categories
+    const expCats = (S.expCats||DEFAULT_EXP_CATS).sort();
+    if(expCats.length){
+      const og = document.createElement('optgroup'); og.label = '── Expense Categories';
+      expCats.forEach(c=>{
+        const o=document.createElement('option'); o.value='__exp__'+c;
+        o.textContent='📤 '+c;
+        if(('__exp__'+c)===prev) o.selected=true; og.appendChild(o);
       });
       acctSel.appendChild(og);
     }
@@ -2917,13 +2942,22 @@ function genReport(type){
     const toD     = document.getElementById('rep-to')?.value   || '';
     if(!acctId){ toast('Select an account first','err'); document.getElementById('rep-out').style.display='none'; return; }
     const isAll   = acctId==='__all__';
-    const acct    = isAll ? null : S.accounts.find(a=>a.id===acctId);
-    const acctName = isAll ? 'All Accounts' : (acct?.name||'Account');
+    const isCat   = acctId.startsWith('__inc__') || acctId.startsWith('__exp__');
+    const catName = isCat ? acctId.replace('__inc__','').replace('__exp__','') : '';
+    const catType = acctId.startsWith('__inc__') ? 'credit' : acctId.startsWith('__exp__') ? 'debit' : '';
+    const acct    = (!isAll&&!isCat) ? S.accounts.find(a=>a.id===acctId) : null;
+    const acctName = isAll ? 'All Accounts' : isCat ? (catType==='credit'?'📥 ':'📤 ')+catName : (acct?.name||'Account');
     const periodLabel = fromD&&toD ? `${fromD} to ${toD}` : fromD ? `From ${fromD}` : toD ? `To ${toD}` : 'All Time';
     title.textContent = `${acctName} — Statement (${periodLabel})`;
     // Filter transactions
     let txs = S.tx.filter(t=>{
-      if(!isAll && t.accountId !== acctId) return false;
+      if(isCat){
+        // Category-based: filter by category name and type
+        if(t.category !== catName) return false;
+        if(catType && t.type !== catType) return false;
+      } else if(!isAll){
+        if(t.accountId !== acctId) return false;
+      }
       if(fromD && t.date < fromD) return false;
       if(toD   && t.date > toD)   return false;
       return true;
@@ -2943,9 +2977,9 @@ function genReport(type){
         <th>Category</th>
         <th style="text-align:right">Debit</th>
         <th style="text-align:right">Credit</th>
-        <th style="text-align:right">Balance</th>
+        ${(!isAll&&!isCat)?'<th style="text-align:right">Balance</th>':''}
       </tr></thead><tbody>`;
-    let running = acct ? (acct.balance - txs.filter(t=>t.type==='credit').reduce((s,t)=>s+t.amount,0) + txs.filter(t=>t.type==='debit').reduce((s,t)=>s+t.amount,0)) : 0;
+    let running = (acct && !isCat) ? (acct.balance - txs.filter(t=>t.type==='credit').reduce((s,t)=>s+t.amount,0) + txs.filter(t=>t.type==='debit').reduce((s,t)=>s+t.amount,0)) : 0;
     txs.forEach(t=>{
       if(t.type==='credit') running+=t.amount; else running-=t.amount;
       const acctLabel = isAll ? (S.accounts.find(a=>a.id===t.accountId)?.name||'—') : '';
@@ -2956,7 +2990,7 @@ function genReport(type){
         <td><span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(116,185,255,0.1);color:var(--sky)">${esc(getCatLabel(t))}</span></td>
         <td style="text-align:right;font-family:'DM Mono',monospace;color:var(--coral)">${t.type==='debit'?fmt(t.amount):''}</td>
         <td style="text-align:right;font-family:'DM Mono',monospace;color:var(--teal)">${t.type==='credit'?fmt(t.amount):''}</td>
-        <td style="text-align:right;font-family:'DM Mono',monospace;color:${running>=0?'var(--text2)':'var(--coral)'}">${isAll?'—':fmt(running)}</td>
+        ${(!isAll&&!isCat)?`<td style="text-align:right;font-family:'DM Mono',monospace;color:${running>=0?'var(--text2)':'var(--coral)'}">${fmt(running)}</td>`:''}
       </tr>`;
     });
     html+=`<tr style="border-top:2px solid var(--border2);font-weight:700">
@@ -2964,7 +2998,7 @@ function genReport(type){
       <td></td>
       <td style="text-align:right;color:var(--coral);font-family:'DM Mono',monospace">${fmt(totalDr)}</td>
       <td style="text-align:right;color:var(--teal);font-family:'DM Mono',monospace">${fmt(totalCr)}</td>
-      <td style="text-align:right;color:var(--gold);font-family:'DM Mono',monospace">${isAll?'—':fmt(acct?.balance||0)}</td>
+      ${(!isAll&&!isCat)?`<td style="text-align:right;color:var(--gold);font-family:'DM Mono',monospace">${fmt(acct?.balance||0)}</td>`:''}
     </tr>`;
     html+=`</tbody></table>`;
     body.innerHTML=html;
