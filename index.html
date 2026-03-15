@@ -1180,17 +1180,25 @@ td{padding:11px 14px;font-size:13px}
         <!-- Date filters -->
         <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;margin-bottom:20px;padding:16px;background:var(--glass);border:1px solid var(--border);border-radius:var(--r)">
           <div class="form-group" style="margin:0">
-            <label class="form-label">P&L From</label>
-            <input class="form-input" type="date" id="rep-from" style="width:160px">
+            <label class="form-label">From</label>
+            <input class="form-input" type="date" id="rep-from" style="width:150px">
           </div>
           <div class="form-group" style="margin:0">
-            <label class="form-label">P&L To</label>
-            <input class="form-input" type="date" id="rep-to" style="width:160px">
+            <label class="form-label">To</label>
+            <input class="form-input" type="date" id="rep-to" style="width:150px">
           </div>
           <div style="width:1px;height:40px;background:var(--border);margin:0 4px"></div>
           <div class="form-group" style="margin:0">
             <label class="form-label">Balance Sheet As Of</label>
-            <input class="form-input" type="date" id="rep-asof" style="width:160px">
+            <input class="form-input" type="date" id="rep-asof" style="width:150px">
+          </div>
+          <div style="width:1px;height:40px;background:var(--border);margin:0 4px"></div>
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Account Statement — Account</label>
+            <select class="form-input" id="rep-acct" style="width:200px">
+              <option value="">— Select account —</option>
+              <option value="__all__">All Accounts</option>
+            </select>
           </div>
         </div>
 
@@ -1201,6 +1209,7 @@ td{padding:11px 14px;font-size:13px}
           <div class="rep-card" onclick="genReport('cashflow')"><div class="rep-icon">∿</div><div class="rep-title">Cash Flow</div><div class="rep-sub">Net flow over time</div></div>
           <div class="rep-card" onclick="genReport('savings')"><div class="rep-icon">◎</div><div class="rep-title">Savings Rate</div><div class="rep-sub">How much you're saving</div></div>
           <div class="rep-card" onclick="genReport('balancesheet')"><div class="rep-icon">⚖</div><div class="rep-title">Balance Sheet</div><div class="rep-sub">Full assets & liabilities</div></div>
+          <div class="rep-card" onclick="genReport('statement')"><div class="rep-icon">📋</div><div class="rep-title">Account Statement</div><div class="rep-sub">Transactions for any account</div></div>
         </div>
         <div class="card" id="rep-out" style="display:none">
           <div class="card-hd"><span class="card-title" id="rep-title"></span><button class="btn btn-ghost btn-sm" onclick="exportReport()">↓ Export</button></div>
@@ -1927,15 +1936,15 @@ td{padding:11px 14px;font-size:13px}
             <option value="Property">Property / Land</option>
             <option value="Vehicle">Vehicle</option>
             <option value="Investment">Investment / Shares</option>
-            <option value="Computer">💻 Computer &amp; Accessories</option>
-            <option value="People Owed To Me">🤝 People Owed To Me</option>
+            <option value="Computer">Computer &amp; Accessories</option>
+            <option value="People Owed To Me">People Owed To Me</option>
             <option value="Other Asset">Other Asset</option>
           </optgroup>
           <optgroup label="Liabilities">
             <option value="Credit Card">Credit Card</option>
             <option value="Loan">Loan</option>
             <option value="Hire Purchase">Hire Purchase / Leasing</option>
-            <option value="Pay Later">📱 Pay Later (Koko, Mintpay…)</option>
+            <option value="Pay Later">Pay Later</option>
             <option value="Owed To Person">Owed To Person</option>
             <option value="Other Liability">Other Liability</option>
           </optgroup>
@@ -2777,7 +2786,6 @@ function saveBudgets(){
 //  REPORTS
 // ════════════════════════════════════════════
 function initRepDates(){
-  // Set default date range to current year
   const now = new Date();
   const y = now.getFullYear();
   const fromEl = document.getElementById('rep-from');
@@ -2786,6 +2794,35 @@ function initRepDates(){
   if(fromEl && !fromEl.value) fromEl.value = `${y}-01-01`;
   if(toEl   && !toEl.value)   toEl.value   = today();
   if(asofEl && !asofEl.value) asofEl.value = today();
+  // Populate account dropdown
+  const acctSel = document.getElementById('rep-acct');
+  if(acctSel){
+    const prev = acctSel.value;
+    acctSel.innerHTML = '<option value="">— Select account —</option><option value="__all__">All Accounts</option>';
+    // Group by kind
+    const assets = S.accounts.filter(a=>a.kind==='asset');
+    const liabs  = S.accounts.filter(a=>a.kind==='liability');
+    if(assets.length){
+      const og = document.createElement('optgroup');
+      og.label = 'Assets';
+      assets.sort((a,b)=>a.name.localeCompare(b.name)).forEach(a=>{
+        const o=document.createElement('option'); o.value=a.id; o.textContent=`${ASSET_ICONS[a.type]||'◈'} ${a.name}`;
+        if(a.id===prev) o.selected=true;
+        og.appendChild(o);
+      });
+      acctSel.appendChild(og);
+    }
+    if(liabs.length){
+      const og = document.createElement('optgroup');
+      og.label = 'Liabilities';
+      liabs.sort((a,b)=>a.name.localeCompare(b.name)).forEach(a=>{
+        const o=document.createElement('option'); o.value=a.id; o.textContent=`${LIAB_ICONS[a.type]||'◈'} ${a.name}`;
+        if(a.id===prev) o.selected=true;
+        og.appendChild(o);
+      });
+      acctSel.appendChild(og);
+    }
+  }
 }
 
 function genReport(type){
@@ -2874,6 +2911,64 @@ function genReport(type){
     title.textContent='Savings Rate Analysis';
     const months=getMonths();
     body.innerHTML=`<table><thead><tr><th>Month</th><th>Income</th><th>Saved</th><th>Rate</th><th>Status</th></tr></thead><tbody>${months.map(m=>{const s=m.inc-m.exp;const r=m.inc>0?(s/m.inc*100):0;return `<tr><td>${m.lbl}</td><td>${fmt(m.inc)}</td><td style="color:${s>=0?'var(--teal)':'var(--coral)'}">${fmt(Math.abs(s))}</td><td>${r.toFixed(1)}%</td><td>${r>=20?'Good':r>=10?'OK':'Review'}</td></tr>`}).join('')}</tbody></table>`;
+  } else if(type==='statement'){
+    const acctId  = document.getElementById('rep-acct')?.value;
+    const fromD   = document.getElementById('rep-from')?.value || '';
+    const toD     = document.getElementById('rep-to')?.value   || '';
+    if(!acctId){ toast('Select an account first','err'); document.getElementById('rep-out').style.display='none'; return; }
+    const isAll   = acctId==='__all__';
+    const acct    = isAll ? null : S.accounts.find(a=>a.id===acctId);
+    const acctName = isAll ? 'All Accounts' : (acct?.name||'Account');
+    const periodLabel = fromD&&toD ? `${fromD} to ${toD}` : fromD ? `From ${fromD}` : toD ? `To ${toD}` : 'All Time';
+    title.textContent = `${acctName} — Statement (${periodLabel})`;
+    // Filter transactions
+    let txs = S.tx.filter(t=>{
+      if(!isAll && t.accountId !== acctId) return false;
+      if(fromD && t.date < fromD) return false;
+      if(toD   && t.date > toD)   return false;
+      return true;
+    }).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+    if(!txs.length){ body.innerHTML='<div style="padding:20px;color:var(--text3);text-align:center">No transactions found for this period.</div>'; return; }
+    const totalCr = txs.filter(t=>t.type==='credit').reduce((s,t)=>s+t.amount,0);
+    const totalDr = txs.filter(t=>t.type==='debit').reduce((s,t)=>s+t.amount,0);
+    const isTransferFn = t => t.category==='__transfer__';
+    const getCatLabel = t => isTransferFn(t)
+      ? ('⇄ Transfer'+(t.transferToId?(' → '+(S.accounts.find(a=>a.id===t.transferToId)?.name||'')):''))
+      : (t.category||'Uncategorised');
+    let html = `<table style="width:100%">
+      <thead><tr>
+        <th>Date</th>
+        <th>Description</th>
+        ${isAll?'<th>Account</th>':''}
+        <th>Category</th>
+        <th style="text-align:right">Debit</th>
+        <th style="text-align:right">Credit</th>
+        <th style="text-align:right">Balance</th>
+      </tr></thead><tbody>`;
+    let running = acct ? (acct.balance - txs.filter(t=>t.type==='credit').reduce((s,t)=>s+t.amount,0) + txs.filter(t=>t.type==='debit').reduce((s,t)=>s+t.amount,0)) : 0;
+    txs.forEach(t=>{
+      if(t.type==='credit') running+=t.amount; else running-=t.amount;
+      const acctLabel = isAll ? (S.accounts.find(a=>a.id===t.accountId)?.name||'—') : '';
+      html+=`<tr>
+        <td style="font-family:'DM Mono',monospace;font-size:11px;white-space:nowrap">${fmtDate(t.date)}</td>
+        <td>${esc(t.description||'—')}</td>
+        ${isAll?`<td style="font-size:12px;color:var(--text3)">${esc(acctLabel)}</td>`:''}
+        <td><span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(116,185,255,0.1);color:var(--sky)">${esc(getCatLabel(t))}</span></td>
+        <td style="text-align:right;font-family:'DM Mono',monospace;color:var(--coral)">${t.type==='debit'?fmt(t.amount):''}</td>
+        <td style="text-align:right;font-family:'DM Mono',monospace;color:var(--teal)">${t.type==='credit'?fmt(t.amount):''}</td>
+        <td style="text-align:right;font-family:'DM Mono',monospace;color:${running>=0?'var(--text2)':'var(--coral)'}">${isAll?'—':fmt(running)}</td>
+      </tr>`;
+    });
+    html+=`<tr style="border-top:2px solid var(--border2);font-weight:700">
+      <td colspan="${isAll?3:2}" style="padding:8px 12px">Totals</td>
+      <td></td>
+      <td style="text-align:right;color:var(--coral);font-family:'DM Mono',monospace">${fmt(totalDr)}</td>
+      <td style="text-align:right;color:var(--teal);font-family:'DM Mono',monospace">${fmt(totalCr)}</td>
+      <td style="text-align:right;color:var(--gold);font-family:'DM Mono',monospace">${isAll?'—':fmt(acct?.balance||0)}</td>
+    </tr>`;
+    html+=`</tbody></table>`;
+    body.innerHTML=html;
+
   } else if(type==='balancesheet'){
     const asofLabel = asofDate ? new Date(asofDate+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) : new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
     title.textContent='Balance Sheet — As of '+asofLabel;
