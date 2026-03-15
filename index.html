@@ -1300,6 +1300,11 @@ td{padding:11px 14px;font-size:13px}
               <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:6px;justify-content:center;display:flex" onclick="openAccountModal('asset','Property')">+ Add Property / Vehicle</button>
             </div>
             <div class="al-type-group">
+              <div class="al-type-label">💻 Computer &amp; Accessories <span class="al-type-subtotal" id="ast-computer" style="color:var(--teal)">Rs 0</span></div>
+              <div id="al-computer-list"></div>
+              <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:6px;justify-content:center;display:flex" onclick="openAccountModal('asset','Computer')">+ Add Computer</button>
+            </div>
+            <div class="al-type-group">
               <div class="al-type-label">🤝 People Owed To Me <span class="al-type-subtotal" id="ast-owed" style="color:var(--teal)">Rs 0</span></div>
               <div id="al-owed-list"></div>
               <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:6px;justify-content:center;display:flex" onclick="openAccountModal('asset','People Owed To Me')">+ Add Person</button>
@@ -1904,15 +1909,16 @@ td{padding:11px 14px;font-size:13px}
             <option value="Property">Property / Land</option>
             <option value="Vehicle">Vehicle</option>
             <option value="Investment">Investment / Shares</option>
-            <option value="Other Asset">Other Asset</option>
+            <option value="Computer">Computer / Mobile Phone</option>
             <option value="People Owed To Me">People Owed To Me</option>
+            <option value="Other Asset">Other Asset</option>
           </optgroup>
           <optgroup label="Liabilities">
             <option value="Credit Card">Credit Card</option>
             <option value="Loan">Loan</option>
             <option value="Hire Purchase">Hire Purchase / Leasing</option>
             <option value="Pay Later">Pay Later</option>
-            <option value="Owed To Person">Owed To People</option>
+            <option value="Owed To Person">Owed To Person</option>
             <option value="Other Liability">Other Liability</option>
           </optgroup>
         </select>
@@ -3268,11 +3274,11 @@ async function loadFromDriveSilent(){
 // ════════════════════════════════════════════
 //  ASSETS & LIABILITIES
 // ════════════════════════════════════════════
-const ASSET_TYPES    = ['Bank Account','Fixed Deposit','Cash','Property','Vehicle','Investment','People Owed To Me','Other Asset'];
+const ASSET_TYPES    = ['Bank Account','Fixed Deposit','Cash','Property','Vehicle','Investment','Computer','People Owed To Me','Other Asset'];
 const LIAB_TYPES     = ['Credit Card','Loan','Hire Purchase','Pay Later','Owed To Person','Other Liability'];
-const ASSET_ICONS    = {'Bank Account':'🏦','Fixed Deposit':'📈','Cash':'💵','Property':'🏠','Vehicle':'🚗','Investment':'📊','Other Asset':'◈','People Owed To Me':'🤝'};
+const ASSET_ICONS    = {'Bank Account':'🏦','Fixed Deposit':'📈','Cash':'💵','Property':'🏠','Vehicle':'🚗','Investment':'📊','Other Asset':'◈','People Owed To Me':'🤝','Computer':'💻'};
 const LIAB_ICONS     = {'Credit Card':'💳','Loan':'🏦','Hire Purchase':'📋','Pay Later':'📱','Owed To Person':'👤','Other Liability':'◈'};
-const ASSET_COLORS   = {'Bank Account':'#00c9a7','Fixed Deposit':'#74b9ff','Cash':'#fdcb6e','Property':'#a29bfe','Vehicle':'#fd79a8','Investment':'#55efc4','Other Asset':'#636e72','People Owed To Me':'#55efc4'};
+const ASSET_COLORS   = {'Bank Account':'#00c9a7','Fixed Deposit':'#74b9ff','Cash':'#fdcb6e','Property':'#a29bfe','Vehicle':'#fd79a8','Investment':'#55efc4','Other Asset':'#636e72','People Owed To Me':'#55efc4','Computer':'#a29bfe'};
 const LIAB_COLORS    = {'Credit Card':'#ff6b6b','Loan':'#e17055','Hire Purchase':'#fab1a0','Pay Later':'#a29bfe','Owed To Person':'#fd79a8','Other Liability':'#b2bec3'};
 
 function totalAssets(){ return S.accounts.filter(a=>a.kind==='asset').reduce((s,a)=>s+a.balance,0); }
@@ -3349,7 +3355,7 @@ function renderNetWorth(){
 
 // ── ASSETS PAGE ──
 function renderAssets(){
-  const listIds = ['al-bank-list','al-fd-list','al-cash-list','al-prop-list','al-owed-list','al-otherasset-list'];
+  const listIds = ['al-bank-list','al-fd-list','al-cash-list','al-prop-list','al-computer-list','al-owed-list','al-otherasset-list'];
   listIds.forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=''; });
   const assets=S.accounts.filter(a=>a.kind==='asset');
   assets.forEach(a=>{
@@ -3358,6 +3364,7 @@ function renderAssets(){
     else if(a.type==='Fixed Deposit'||a.type==='Investment') listId='al-fd-list';
     else if(a.type==='Cash') listId='al-cash-list';
     else if(a.type==='Property'||a.type==='Vehicle') listId='al-prop-list';
+    else if(a.type==='Computer') listId='al-computer-list';
     else if(a.type==='People Owed To Me') listId='al-owed-list';
     else listId='al-otherasset-list';
     const el=document.getElementById(listId); if(!el) return;
@@ -3368,6 +3375,7 @@ function renderAssets(){
   document.getElementById('ast-fd').textContent=fmt(sum(['Fixed Deposit','Investment']));
   document.getElementById('ast-cash').textContent=fmt(sum(['Cash']));
   document.getElementById('ast-prop').textContent=fmt(sum(['Property','Vehicle']));
+  document.getElementById('ast-computer').textContent=fmt(sum(['Computer']));
   document.getElementById('ast-owed').textContent=fmt(sum(['People Owed To Me']));
   document.getElementById('ast-other').textContent=fmt(sum(['Other Asset']));
   document.getElementById('assets-grand-total').textContent=fmt(totalAssets());
