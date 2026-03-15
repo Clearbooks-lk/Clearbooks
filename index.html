@@ -1176,6 +1176,24 @@ td{padding:11px 14px;font-size:13px}
       <div class="page" id="page-reports">
         <div class="sec-title">Reports</div>
         <div class="sec-sub">Insights from your financial data</div>
+
+        <!-- Date filters -->
+        <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;margin-bottom:20px;padding:16px;background:var(--glass);border:1px solid var(--border);border-radius:var(--r)">
+          <div class="form-group" style="margin:0">
+            <label class="form-label">P&L From</label>
+            <input class="form-input" type="date" id="rep-from" style="width:160px">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label class="form-label">P&L To</label>
+            <input class="form-input" type="date" id="rep-to" style="width:160px">
+          </div>
+          <div style="width:1px;height:40px;background:var(--border);margin:0 4px"></div>
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Balance Sheet As Of</label>
+            <input class="form-input" type="date" id="rep-asof" style="width:160px">
+          </div>
+        </div>
+
         <div class="rep-grid">
           <div class="rep-card" onclick="genReport('pl')"><div class="rep-icon">📊</div><div class="rep-title">P&L Report</div><div class="rep-sub">Income vs expenses breakdown</div></div>
           <div class="rep-card" onclick="genReport('monthly')"><div class="rep-icon">📅</div><div class="rep-title">Monthly Summary</div><div class="rep-sub">Income & expenses by month</div></div>
@@ -1909,15 +1927,15 @@ td{padding:11px 14px;font-size:13px}
             <option value="Property">Property / Land</option>
             <option value="Vehicle">Vehicle</option>
             <option value="Investment">Investment / Shares</option>
-            <option value="Computer">Computer &amp; Accessories</option>
-            <option value="People Owed To Me">People Owed To Me</option>
+            <option value="Computer">💻 Computer &amp; Accessories</option>
+            <option value="People Owed To Me">🤝 People Owed To Me</option>
             <option value="Other Asset">Other Asset</option>
           </optgroup>
           <optgroup label="Liabilities">
             <option value="Credit Card">Credit Card</option>
             <option value="Loan">Loan</option>
             <option value="Hire Purchase">Hire Purchase / Leasing</option>
-            <option value="Pay Later">Pay Later</option>
+            <option value="Pay Later">📱 Pay Later (Koko, Mintpay…)</option>
             <option value="Owed To Person">Owed To Person</option>
             <option value="Other Liability">Other Liability</option>
           </optgroup>
@@ -2346,6 +2364,7 @@ function go(page){
   if(page==='transfers') renderTransfers();
   if(page==='journals') renderJournals();
   if(page==='budgets') renderBudgets();
+  if(page==='reports') initRepDates();
   if(page==='settings') renderSettings();
 }
 
@@ -2757,22 +2776,47 @@ function saveBudgets(){
 // ════════════════════════════════════════════
 //  REPORTS
 // ════════════════════════════════════════════
+function initRepDates(){
+  // Set default date range to current year
+  const now = new Date();
+  const y = now.getFullYear();
+  const fromEl = document.getElementById('rep-from');
+  const toEl   = document.getElementById('rep-to');
+  const asofEl = document.getElementById('rep-asof');
+  if(fromEl && !fromEl.value) fromEl.value = `${y}-01-01`;
+  if(toEl   && !toEl.value)   toEl.value   = today();
+  if(asofEl && !asofEl.value) asofEl.value = today();
+}
+
 function genReport(type){
+  initRepDates();
   const out=document.getElementById('rep-out'); out.style.display='block';
   const title=document.getElementById('rep-title'); const body=document.getElementById('rep-body');
   const sec=(label,clr='var(--text)')=>`<tr><td colspan="2" style="font-weight:700;background:rgba(255,255,255,0.03);padding:10px 12px;text-transform:uppercase;font-size:11px;letter-spacing:1px;color:${clr}">${label}</td></tr>`;
   const sub=(label,amt,clr,indent=16)=>`<tr><td style="padding-left:${indent}px;font-weight:600;color:var(--text)">${label}</td><td style="text-align:right;color:${clr}">${fmt(amt)}</td></tr>`;
   const row=(label,amt,clr='var(--text3)',indent=32)=>`<tr><td style="padding-left:${indent}px;font-size:12px;color:${clr}">${esc(label)}</td><td style="text-align:right;font-size:12px;color:${clr}">${fmt(amt)}</td></tr>`;
   const tot=(label,amt,clr)=>`<tr style="border-top:1px solid var(--border2)"><td style="font-weight:700;padding:8px 12px">${label}</td><td style="text-align:right;font-weight:700;color:${clr};padding:8px 12px">${fmt(amt)}</td></tr>`;
+  // Date range for P&L
+  const fromDate = document.getElementById('rep-from')?.value || '';
+  const toDate   = document.getElementById('rep-to')?.value   || '';
+  const asofDate = document.getElementById('rep-asof')?.value || today();
 
   if(type==='pl'){
-    title.textContent='Profit & Loss — '+new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+    const plFrom = fromDate || '';
+    const plTo   = toDate   || '';
+    const plLabel = plFrom&&plTo ? `${plFrom} to ${plTo}` : plFrom ? `From ${plFrom}` : plTo ? `To ${plTo}` : 'All Time';
+    title.textContent=`Profit & Loss — ${plLabel}`;
     if(!S.incCats||!S.incCats.length) S.incCats=[...DEFAULT_INC_CATS];
     if(!S.expCats||!S.expCats.length) S.expCats=[...DEFAULT_EXP_CATS];
-    // Build totals per category
+    // Build totals per category — filtered by date range
     const bycat={};
-    S.tx.filter(t=>t.category!=='__transfer__').forEach(t=>{
-      if(!t.category) return;
+    S.tx.filter(t=>{
+      if(t.category==='__transfer__') return false;
+      if(!t.category) return false;
+      if(plFrom && t.date < plFrom) return false;
+      if(plTo   && t.date > plTo)   return false;
+      return true;
+    }).forEach(t=>{
       bycat[t.category]=(bycat[t.category]||{inc:0,exp:0});
       if(t.type==='credit') bycat[t.category].inc+=t.amount;
       else bycat[t.category].exp+=t.amount;
@@ -2831,30 +2875,34 @@ function genReport(type){
     const months=getMonths();
     body.innerHTML=`<table><thead><tr><th>Month</th><th>Income</th><th>Saved</th><th>Rate</th><th>Status</th></tr></thead><tbody>${months.map(m=>{const s=m.inc-m.exp;const r=m.inc>0?(s/m.inc*100):0;return `<tr><td>${m.lbl}</td><td>${fmt(m.inc)}</td><td style="color:${s>=0?'var(--teal)':'var(--coral)'}">${fmt(Math.abs(s))}</td><td>${r.toFixed(1)}%</td><td>${r>=20?'Good':r>=10?'OK':'Review'}</td></tr>`}).join('')}</tbody></table>`;
   } else if(type==='balancesheet'){
-    title.textContent='Balance Sheet — '+new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+    const asofLabel = asofDate ? new Date(asofDate+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) : new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+    title.textContent='Balance Sheet — As of '+asofLabel;
     const ta=totalAssets(), tl=totalLiabilities(), nw=ta-tl;
-    // Ordered asset groups as requested
-    const ASSET_ORDER = ['Property','Vehicle','Investment','People Owed To Me','Other Asset','Bank Account','Fixed Deposit','Cash'];
+    const ASSET_ORDER = ['Property','Vehicle','Computer','Investment','Fixed Deposit','People Owed To Me','Other Asset','Bank Account','Cash'];
     const LIAB_ORDER  = ['Hire Purchase','Loan','Pay Later','Owed To Person','Credit Card','Other Liability'];
     const aByType={}, lByType={};
-    S.accounts.filter(a=>a.kind==='asset').forEach(a=>{aByType[a.type]=aByType[a.type]||[];aByType[a.type].push(a);});
-    S.accounts.filter(a=>a.kind==='liability').forEach(a=>{lByType[a.type]=lByType[a.type]||[];lByType[a.type].push(a);});
+    // Only show accounts with non-zero balance
+    S.accounts.filter(a=>a.kind==='asset'&&a.balance!==0).forEach(a=>{aByType[a.type]=aByType[a.type]||[];aByType[a.type].push(a);});
+    S.accounts.filter(a=>a.kind==='liability'&&a.balance!==0).forEach(a=>{lByType[a.type]=lByType[a.type]||[];lByType[a.type].push(a);});
     let html=`<table style="width:100%"><thead><tr><th>Item</th><th style="text-align:right">Amount</th></tr></thead><tbody>`;
     html+=sec('Assets','var(--teal)');
     let assetTotal=0;
     ASSET_ORDER.forEach(type=>{
       const accts=(aByType[type]||[]).sort((a,b)=>a.name.localeCompare(b.name));
       if(!accts.length) return;
-      const s=accts.reduce((x,a)=>x+a.balance,0); assetTotal+=s;
+      const s=accts.reduce((x,a)=>x+a.balance,0);
+      if(s===0) return; // hide zero groups
+      assetTotal+=s;
       html+=sub(type,s,'var(--teal)');
-      accts.forEach(a=>html+=row(a.name+(a.institution?' ('+a.institution+')':''),a.balance));
+      accts.forEach(a=>{ if(a.balance!==0) html+=row(a.name+(a.institution?' ('+a.institution+')':''),a.balance); });
     });
-    // Any types not in order
     Object.keys(aByType).filter(t=>!ASSET_ORDER.includes(t)).sort().forEach(type=>{
       const accts=(aByType[type]||[]).sort((a,b)=>a.name.localeCompare(b.name));
-      const s=accts.reduce((x,a)=>x+a.balance,0); assetTotal+=s;
+      const s=accts.reduce((x,a)=>x+a.balance,0);
+      if(s===0) return;
+      assetTotal+=s;
       html+=sub(type,s,'var(--teal)');
-      accts.forEach(a=>html+=row(a.name,a.balance));
+      accts.forEach(a=>{ if(a.balance!==0) html+=row(a.name,a.balance); });
     });
     html+=tot('Total Assets',assetTotal,'var(--teal)');
     html+=`<tr><td colspan="2" style="height:8px"></td></tr>`;
@@ -2863,15 +2911,19 @@ function genReport(type){
     LIAB_ORDER.forEach(type=>{
       const accts=(lByType[type]||[]).sort((a,b)=>a.name.localeCompare(b.name));
       if(!accts.length) return;
-      const s=accts.reduce((x,a)=>x+a.balance,0); liabTotal+=s;
+      const s=accts.reduce((x,a)=>x+a.balance,0);
+      if(s===0) return;
+      liabTotal+=s;
       html+=sub(type,s,'var(--coral)');
-      accts.forEach(a=>html+=row(a.name+(a.institution?' ('+a.institution+')':''),a.balance));
+      accts.forEach(a=>{ if(a.balance!==0) html+=row(a.name+(a.institution?' ('+a.institution+')':''),a.balance); });
     });
     Object.keys(lByType).filter(t=>!LIAB_ORDER.includes(t)).sort().forEach(type=>{
       const accts=(lByType[type]||[]).sort((a,b)=>a.name.localeCompare(b.name));
-      const s=accts.reduce((x,a)=>x+a.balance,0); liabTotal+=s;
+      const s=accts.reduce((x,a)=>x+a.balance,0);
+      if(s===0) return;
+      liabTotal+=s;
       html+=sub(type,s,'var(--coral)');
-      accts.forEach(a=>html+=row(a.name,a.balance));
+      accts.forEach(a=>{ if(a.balance!==0) html+=row(a.name,a.balance); });
     });
     html+=tot('Total Liabilities',liabTotal,'var(--coral)');
     html+=`<tr><td colspan="2" style="height:8px"></td></tr>`;
@@ -3297,7 +3349,7 @@ function renderNetWorth(){
 
   // Balance sheet table
   const bs=document.querySelector('#bs-table tbody');
-  const ASSET_ORDER=['Property','Vehicle','Investment','People Owed To Me','Other Asset','Bank Account','Fixed Deposit','Cash'];
+  const ASSET_ORDER=['Property','Vehicle','Computer','Investment','Fixed Deposit','People Owed To Me','Other Asset','Bank Account','Cash'];
   const LIAB_ORDER =['Hire Purchase','Loan','Pay Later','Owed To Person','Credit Card','Other Liability'];
   const aByType={}, lByType={};
   S.accounts.filter(a=>a.kind==='asset').forEach(a=>{aByType[a.type]=aByType[a.type]||[];aByType[a.type].push(a);});
