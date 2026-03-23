@@ -1936,15 +1936,15 @@ td{padding:11px 14px;font-size:13px}
             <option value="Property">Property / Land</option>
             <option value="Vehicle">Vehicle</option>
             <option value="Investment">Investment / Shares</option>
-            <option value="Computer">Computer &amp; Accessories</option>
-            <option value="People Owed To Me">People Owed To Me</option>
+            <option value="Computer">💻 Computer &amp; Accessories</option>
+            <option value="People Owed To Me">🤝 People Owed To Me</option>
             <option value="Other Asset">Other Asset</option>
           </optgroup>
           <optgroup label="Liabilities">
             <option value="Credit Card">Credit Card</option>
             <option value="Loan">Loan</option>
             <option value="Hire Purchase">Hire Purchase / Leasing</option>
-            <option value="Pay Later">Pay Later</option>
+            <option value="Pay Later">📱 Pay Later (Koko, Mintpay…)</option>
             <option value="Owed To Person">Owed To Person</option>
             <option value="Other Liability">Other Liability</option>
           </optgroup>
@@ -4602,11 +4602,11 @@ function renderTransfers(){
 function renderTransferBalPanel(){
   const el = document.getElementById('transfer-bal-panel');
   if(!el) return;
-  const bankAccts = S.accounts.filter(a=>['Bank Account','Cash','Credit Card','Fixed Deposit'].includes(a.type));
-  if(!bankAccts.length){ el.innerHTML='<div style="color:var(--text3);font-size:13px">No bank accounts set up yet</div>'; return; }
-  el.innerHTML = bankAccts.map(a=>{
-    const icon = ASSET_ICONS[a.type]||'🏦';
-    const clr = ASSET_COLORS[a.type]||LIAB_COLORS[a.type]||'#636e72';
+  const allAccts = S.accounts;
+  if(!allAccts.length){ el.innerHTML='<div style="color:var(--text3);font-size:13px">No accounts set up yet</div>'; return; }
+  el.innerHTML = allAccts.map(a=>{
+    const icon = ASSET_ICONS[a.type]||LIAB_ICONS[a.type]||'◈';
+    const clr  = ASSET_COLORS[a.type]||LIAB_COLORS[a.type]||'#636e72';
     return `<div class="account-card" style="cursor:default" id="bal-card-${a.id}">
       <div class="account-icon" style="background:${clr}22">${icon}</div>
       <div class="account-info"><div class="account-name">${esc(a.name)}</div><div class="account-sub">${esc(a.institution||a.type)}</div></div>
@@ -4616,12 +4616,29 @@ function renderTransferBalPanel(){
 }
 
 function openTransferModal(){
-  const bankAccts = S.accounts.filter(a=>['Bank Account','Cash','Credit Card','Fixed Deposit'].includes(a.type));
-  if(bankAccts.length<2){ toast('Need at least 2 bank accounts to transfer','err'); return; }
+  const allAccts = S.accounts;
+  if(allAccts.length<2){ toast('Need at least 2 accounts to transfer','err'); return; }
   const fromSel = document.getElementById('tr-from');
   const toSel   = document.getElementById('tr-to');
-  fromSel.innerHTML = bankAccts.map(a=>`<option value="${a.id}">${ASSET_ICONS[a.type]||'🏦'} ${esc(a.name)}</option>`).join('');
-  toSel.innerHTML   = bankAccts.map((a,i)=>`<option value="${a.id}" ${i===1?'selected':''}>${ASSET_ICONS[a.type]||'🏦'} ${esc(a.name)}</option>`).join('');
+  const buildOpts = (sel, skipId='') => {
+    sel.innerHTML = '';
+    const assets = allAccts.filter(a=>a.kind==='asset');
+    const liabs  = allAccts.filter(a=>a.kind==='liability');
+    if(assets.length){
+      const og = document.createElement('optgroup'); og.label='Assets';
+      assets.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=`${ASSET_ICONS[a.type]||'◈'} ${esc(a.name)}`; og.appendChild(o); });
+      sel.appendChild(og);
+    }
+    if(liabs.length){
+      const og = document.createElement('optgroup'); og.label='Liabilities';
+      liabs.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=`${LIAB_ICONS[a.type]||'◈'} ${esc(a.name)}`; og.appendChild(o); });
+      sel.appendChild(og);
+    }
+  };
+  buildOpts(fromSel);
+  buildOpts(toSel);
+  // Default to second account for "to"
+  if(toSel.options.length>1) toSel.selectedIndex=1;
   document.getElementById('tr-date').value = today();
   document.getElementById('tr-amount').value = '';
   document.getElementById('tr-note').value = '';
