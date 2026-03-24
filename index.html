@@ -2872,6 +2872,7 @@ function genReport(type){
     if(!S.expCats||!S.expCats.length) S.expCats=[...DEFAULT_EXP_CATS];
     // Build totals per category — filtered by date range
     const bycat={};
+    // 1. From imported transactions
     S.tx.filter(t=>{
       if(t.category==='__transfer__') return false;
       if(!t.category) return false;
@@ -2882,6 +2883,26 @@ function genReport(type){
       bycat[t.category]=(bycat[t.category]||{inc:0,exp:0});
       if(t.type==='credit') bycat[t.category].inc+=t.amount;
       else bycat[t.category].exp+=t.amount;
+    });
+    // 2. From journal entries — lines where account name matches an income/expense category
+    (S.journals||[]).filter(j=>{
+      if(plFrom && j.date < plFrom) return false;
+      if(plTo   && j.date > plTo)   return false;
+      return true;
+    }).forEach(j=>{
+      (j.lines||[]).forEach(l=>{
+        const cat = l.account;
+        const drLKR = l.drLKR!==undefined ? l.drLKR : (l.dr||0);
+        const crLKR = l.crLKR!==undefined ? l.crLKR : (l.cr||0);
+        const isIncCat = (S.incCats||[]).includes(cat);
+        const isExpCat = (S.expCats||[]).includes(cat);
+        if(!isIncCat && !isExpCat) return; // skip account lines, only category lines
+        bycat[cat]=(bycat[cat]||{inc:0,exp:0});
+        // Income category: Credit increases income, Debit reduces it
+        if(isIncCat){ bycat[cat].inc += crLKR - drLKR; }
+        // Expense category: Debit increases expense, Credit reduces it
+        if(isExpCat){ bycat[cat].exp += drLKR - crLKR; }
+      });
     });
     let html=`<table style="width:100%"><thead><tr><th>Category</th><th style="text-align:right">Amount</th></tr></thead><tbody>`;
     // INCOME — categories marked as income, sorted alphabetically
