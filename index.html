@@ -4791,6 +4791,7 @@ function renderJournals(){
         </div>
         <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--teal)">${cur!=='LKR'?sym+' ':''} ${totalDr.toFixed(2)}</div>
         <span style="font-size:11px;padding:2px 8px;border-radius:10px;${balanced?'background:rgba(0,201,167,.15);color:var(--teal)':'background:rgba(255,107,107,.15);color:var(--coral)'}">${balanced?'✓ Balanced':'⚠ Unbalanced'}</span>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openJournalModal('${j.id}')">✎ Edit</button>
         <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteJournal('${j.id}')">✕</button>
       </div>
       <div id="je-${j.id}" style="display:none;padding:0 16px 14px 28px">
@@ -4822,14 +4823,45 @@ function openJournalModal(editId){
   try{
     jeEditId = editId||null;
     document.getElementById('je-modal-title').textContent = editId?'Edit Journal Entry':'New Journal Entry';
-    document.getElementById('je-date').value = today();
-    document.getElementById('je-ref').value = 'JE-'+(((S.journals||[]).length)+1).toString().padStart(3,'0');
-    document.getElementById('je-narration').value = '';
-    document.getElementById('je-currency').value = 'LKR';
-    document.getElementById('je-rate').value = '';
     document.getElementById('je-lines-wrap').innerHTML = '';
-    updJECurrency();
-    addJELine(); addJELine();
+
+    if(editId){
+      // Load existing journal entry data
+      const je = (S.journals||[]).find(x=>x.id===editId);
+      if(!je){ toast('Journal entry not found','err'); return; }
+      document.getElementById('je-date').value      = je.date||today();
+      document.getElementById('je-ref').value       = je.ref||'';
+      document.getElementById('je-narration').value = je.narration||'';
+      document.getElementById('je-currency').value  = je.currency||'LKR';
+      document.getElementById('je-rate').value      = je.rate&&je.rate!==1 ? je.rate : '';
+      updJECurrency();
+      // Add existing lines
+      (je.lines||[]).forEach(l=>{
+        const id = uid();
+        const acctOpts = [
+          ...S.accounts.map(a=>`<option value="${esc(a.name)}" ${a.name===l.account?'selected':''}>${esc(a.name)}</option>`),
+          ...S.cats.map(c=>`<option value="${esc(c)}" ${c===l.account?'selected':''}>${esc(c)}</option>`)
+        ].join('');
+        const div = document.createElement('div');
+        div.className='je-line'; div.id='jel-'+id;
+        div.innerHTML=`
+          <select class="mct-input" onchange="updJETotals()" id="jel-acct-${id}">
+            <option value="">Select account…</option>${acctOpts}
+          </select>
+          <input class="mct-input" type="number" placeholder="0.00" step="0.01" id="jel-dr-${id}" oninput="updJETotals()" style="text-align:right" value="${l.dr||''}">
+          <input class="mct-input" type="number" placeholder="0.00" step="0.01" id="jel-cr-${id}" oninput="updJETotals()" style="text-align:right" value="${l.cr||''}">
+          <button class="je-del-btn" onclick="removeJELine('${id}')">✕</button>`;
+        document.getElementById('je-lines-wrap').appendChild(div);
+      });
+    } else {
+      document.getElementById('je-date').value      = today();
+      document.getElementById('je-ref').value       = 'JE-'+(((S.journals||[]).length)+1).toString().padStart(3,'0');
+      document.getElementById('je-narration').value = '';
+      document.getElementById('je-currency').value  = 'LKR';
+      document.getElementById('je-rate').value      = '';
+      updJECurrency();
+      addJELine(); addJELine();
+    }
     updJETotals();
     document.getElementById('journal-modal').classList.add('open');
   }catch(e){ console.error('openJournalModal error:',e); toast('Error: '+e.message,'err'); }
@@ -4929,7 +4961,6 @@ function saveJournalEntry(){
   }
   if(!S.journals) S.journals=[];
   const sym = FX_CURRENCIES[cur]?.s || cur;
-  // Store lines with original currency amounts + LKR equivalents
   const linesWithFX = lines.map(l=>({
     ...l,
     currency: cur,
@@ -4937,21 +4968,51 @@ function saveJournalEntry(){
     drLKR: (l.dr||0)*rate,
     crLKR: (l.cr||0)*rate
   }));
-  const je = {id:uid(),date,ref,narration,lines:linesWithFX,currency:cur,rate};
-  S.journals.push(je);
-  // Apply balance effects using LKR equivalent amounts
-  linesWithFX.forEach(l=>{
-    const acct = S.accounts.find(a=>a.name===l.account);
-    if(acct){
-      if(acct.kind==='asset')    { acct.balance += l.drLKR - l.crLKR; }
-      if(acct.kind==='liability'){ acct.balance += l.crLKR - l.drLKR; }
-      // Store the fx rate on the account for reference
-      if(cur!=='LKR'){ acct.fxCurrency=cur; acct.fxRate=rate; acct.fxLastUpdated=date; }
+
+  if(jeEditId){
+    // EDIT: reverse old entry first, then apply new
+    const old = S.journals.find(x=>x.id===jeEditId);
+    if(old){
+      old.lines.forEach(l=>{
+        const acct = S.accounts.find(a=>a.name===l.account);
+        if(acct){
+          const drLKR = l.drLKR!==undefined?l.drLKR:(l.dr||0);
+          const crLKR = l.crLKR!==undefined?l.crLKR:(l.cr||0);
+          if(acct.kind==='asset')    { acct.balance -= drLKR - crLKR; }
+          if(acct.kind==='liability'){ acct.balance -= crLKR - drLKR; }
+        }
+      });
+      // Update the existing journal entry in place
+      old.date=date; old.ref=ref; old.narration=narration;
+      old.lines=linesWithFX; old.currency=cur; old.rate=rate;
     }
-  });
-  save(); closeModal('journal-modal');
-  const sym2 = cur!=='LKR' ? ` (${sym} @ ${rate} LKR)` : '';
-  toast(`📒 Journal Entry ${ref} posted${sym2}`,'ok');
+    // Apply new balance effects
+    linesWithFX.forEach(l=>{
+      const acct = S.accounts.find(a=>a.name===l.account);
+      if(acct){
+        if(acct.kind==='asset')    { acct.balance += l.drLKR - l.crLKR; }
+        if(acct.kind==='liability'){ acct.balance += l.crLKR - l.drLKR; }
+        if(cur!=='LKR'){ acct.fxCurrency=cur; acct.fxRate=rate; acct.fxLastUpdated=date; }
+      }
+    });
+    save(); closeModal('journal-modal');
+    toast(`📒 Journal Entry ${ref} updated`,'ok');
+  } else {
+    // NEW entry
+    const je = {id:uid(),date,ref,narration,lines:linesWithFX,currency:cur,rate};
+    S.journals.push(je);
+    linesWithFX.forEach(l=>{
+      const acct = S.accounts.find(a=>a.name===l.account);
+      if(acct){
+        if(acct.kind==='asset')    { acct.balance += l.drLKR - l.crLKR; }
+        if(acct.kind==='liability'){ acct.balance += l.crLKR - l.drLKR; }
+        if(cur!=='LKR'){ acct.fxCurrency=cur; acct.fxRate=rate; acct.fxLastUpdated=date; }
+      }
+    });
+    save(); closeModal('journal-modal');
+    const sym2 = cur!=='LKR' ? ` (${sym} @ ${rate} LKR)` : '';
+    toast(`📒 Journal Entry ${ref} posted${sym2}`,'ok');
+  }
   renderJournals();
 }
 
