@@ -2973,7 +2973,6 @@ function genReport(type){
     // Filter transactions
     let txs = S.tx.filter(t=>{
       if(isCat){
-        // Category-based: filter by category name and type
         if(t.category !== catName) return false;
         if(catType && t.type !== catType) return false;
       } else if(!isAll){
@@ -2983,9 +2982,35 @@ function genReport(type){
       if(toD   && t.date > toD)   return false;
       return true;
     }).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
-    if(!txs.length){ body.innerHTML='<div style="padding:20px;color:var(--text3);text-align:center">No transactions found for this period.</div>'; return; }
-    const totalCr = txs.filter(t=>t.type==='credit').reduce((s,t)=>s+t.amount,0);
-    const totalDr = txs.filter(t=>t.type==='debit').reduce((s,t)=>s+t.amount,0);
+
+    // Also include journal entry lines that match the selected account/category
+    const jeTxs = [];
+    (S.journals||[]).filter(j=>{
+      if(fromD && j.date < fromD) return false;
+      if(toD   && j.date > toD)   return false;
+      return true;
+    }).forEach(j=>{
+      (j.lines||[]).forEach(l=>{
+        if(!isAll && l.account !== catName && l.account !== (acct?.name||'')) return;
+        const drLKR = l.drLKR!==undefined ? l.drLKR : (l.dr||0);
+        const crLKR = l.crLKR!==undefined ? l.crLKR : (l.cr||0);
+        if(drLKR===0 && crLKR===0) return;
+        jeTxs.push({
+          date: j.date,
+          description: `${j.ref||'JE'}: ${j.narration||'Journal Entry'}`,
+          category: l.account,
+          type: drLKR>0 ? 'debit' : 'credit',
+          amount: drLKR>0 ? drLKR : crLKR,
+          _isJE: true,
+          _ref: j.ref
+        });
+      });
+    });
+    // Merge and sort
+    const allTxs = [...txs, ...jeTxs].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+    if(!allTxs.length){ body.innerHTML='<div style="padding:20px;color:var(--text3);text-align:center">No transactions found for this period.</div>'; return; }
+    const totalCr = allTxs.filter(t=>t.type==='credit').reduce((s,t)=>s+t.amount,0);
+    const totalDr = allTxs.filter(t=>t.type==='debit').reduce((s,t)=>s+t.amount,0);
     const isTransferFn = t => t.category==='__transfer__';
     const getCatLabel = t => isTransferFn(t)
       ? ('⇄ Transfer'+(t.transferToId?(' → '+(S.accounts.find(a=>a.id===t.transferToId)?.name||'')):''))
@@ -3000,9 +3025,9 @@ function genReport(type){
         <th style="text-align:right">Credit</th>
         ${(!isAll&&!isCat)?'<th style="text-align:right">Balance</th>':''}
       </tr></thead><tbody>`;
-    let running = (acct && !isCat) ? (acct.balance - txs.filter(t=>t.type==='credit').reduce((s,t)=>s+t.amount,0) + txs.filter(t=>t.type==='debit').reduce((s,t)=>s+t.amount,0)) : 0;
-    txs.forEach(t=>{
-      if(t.type==='credit') running+=t.amount; else running-=t.amount;
+    let running2 = (acct && !isCat) ? (acct.balance - txs.filter(t=>t.type==='credit').reduce((s,t)=>s+t.amount,0) + txs.filter(t=>t.type==='debit').reduce((s,t)=>s+t.amount,0)) : 0;
+    allTxs.forEach(t=>{
+      if(t.type==='credit') running2+=t.amount; else running2-=t.amount;
       const acctLabel = isAll ? (S.accounts.find(a=>a.id===t.accountId)?.name||'—') : '';
       html+=`<tr>
         <td style="font-family:'DM Mono',monospace;font-size:11px;white-space:nowrap">${fmtDate(t.date)}</td>
@@ -3011,7 +3036,7 @@ function genReport(type){
         <td><span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(116,185,255,0.1);color:var(--sky)">${esc(getCatLabel(t))}</span></td>
         <td style="text-align:right;font-family:'DM Mono',monospace;color:var(--coral)">${t.type==='debit'?fmt(t.amount):''}</td>
         <td style="text-align:right;font-family:'DM Mono',monospace;color:var(--teal)">${t.type==='credit'?fmt(t.amount):''}</td>
-        ${(!isAll&&!isCat)?`<td style="text-align:right;font-family:'DM Mono',monospace;color:${running>=0?'var(--text2)':'var(--coral)'}">${fmt(running)}</td>`:''}
+        ${(!isAll&&!isCat)?`<td style="text-align:right;font-family:'DM Mono',monospace;color:${running2>=0?'var(--text2)':'var(--coral)'}">${fmt(running2)}</td>`:''}
       </tr>`;
     });
     html+=`<tr style="border-top:2px solid var(--border2);font-weight:700">
