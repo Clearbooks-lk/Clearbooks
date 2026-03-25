@@ -2976,12 +2976,30 @@ function genReport(type){
         if(t.category !== catName) return false;
         if(catType && t.type !== catType) return false;
       } else if(!isAll){
-        if(t.accountId !== acctId) return false;
+        // Include transactions linked to this account (either as source or transfer destination)
+        const isSource = t.accountId === acctId;
+        const isTransferDest = t.category==='__transfer__' && t.transferToId===acctId;
+        if(!isSource && !isTransferDest) return false;
       }
       if(fromD && t.date < fromD) return false;
       if(toD   && t.date > toD)   return false;
       return true;
     }).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+
+    // For transfer destination rows — flip the type so credit→debit and vice versa
+    // and show a proper description from the destination's perspective
+    txs = txs.map(t=>{
+      if(!isAll && !isCat && t.transferToId===acctId && t.accountId!==acctId){
+        const srcAcct = S.accounts.find(a=>a.id===t.accountId);
+        return {
+          ...t,
+          type: t.type==='debit' ? 'credit' : 'debit', // flip: money coming IN to this account
+          description: `Transfer from ${srcAcct?.name||t.description||'?'}`,
+          _flipped: true
+        };
+      }
+      return t;
+    });
 
     // Also include journal entry lines that match the selected account/category
     const jeTxs = [];
