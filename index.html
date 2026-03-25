@@ -3006,8 +3006,43 @@ function genReport(type){
         });
       });
     });
+
+    // Also include manual transfers from S.transfers that involve this account
+    const xferTxs = [];
+    if(!isCat){
+      (S.transfers||[]).filter(tr=>{
+        if(fromD && tr.date < fromD) return false;
+        if(toD   && tr.date > toD)   return false;
+        if(!isAll && tr.fromId !== acctId && tr.toId !== acctId) return false;
+        return true;
+      }).forEach(tr=>{
+        const fromAcct = S.accounts.find(a=>a.id===tr.fromId);
+        const toAcct   = S.accounts.find(a=>a.id===tr.toId);
+        if(isAll || tr.fromId===acctId){
+          xferTxs.push({
+            date: tr.date,
+            description: `Transfer to ${toAcct?.name||'?'}${tr.note?' · '+tr.note:''}`,
+            category: '⇄ Transfer',
+            type: 'debit',
+            amount: tr.amount,
+            _isXfer: true
+          });
+        }
+        if(isAll || tr.toId===acctId){
+          xferTxs.push({
+            date: tr.date,
+            description: `Transfer from ${fromAcct?.name||'?'}${tr.note?' · '+tr.note:''}`,
+            category: '⇄ Transfer',
+            type: 'credit',
+            amount: tr.amount,
+            _isXfer: true
+          });
+        }
+      });
+    }
+
     // Merge and sort
-    const allTxs = [...txs, ...jeTxs].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+    const allTxs = [...txs, ...jeTxs, ...xferTxs].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
     if(!allTxs.length){ body.innerHTML='<div style="padding:20px;color:var(--text3);text-align:center">No transactions found for this period.</div>'; return; }
     const totalCr = allTxs.filter(t=>t.type==='credit').reduce((s,t)=>s+t.amount,0);
     const totalDr = allTxs.filter(t=>t.type==='debit').reduce((s,t)=>s+t.amount,0);
