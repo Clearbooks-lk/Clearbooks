@@ -889,14 +889,13 @@ td{padding:11px 14px;font-size:13px}
         <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.47 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
         Sign in with Google
       </button>
-      <p style="font-size:12px;color:var(--text3);text-align:center;margin-top:14px;line-height:1.6">Use this on your <strong style="color:var(--text2)">main device</strong> to connect your Google Drive and set a PIN for other devices.</p>
+      <p style="font-size:12px;color:var(--text3);text-align:center;margin-top:14px;line-height:1.6">Use this on your <strong style="color:var(--text2)">main device</strong> to connect your Google Drive.</p>
       <div class="auth-divider">or</div>
       <button class="demo-btn" onclick="demoLogin()">Continue with demo data →</button>
     </div>
 
     <!-- PIN login card -->
     <div class="auth-card" id="auth-pin-card" style="display:none">
-      <!-- First-time setup panel (shown when no local data) -->
       <div id="pin-first-time" style="display:none;text-align:center">
         <div style="font-size:32px;margin-bottom:10px">📱</div>
         <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px">First time on this device</div>
@@ -907,16 +906,12 @@ td{padding:11px 14px;font-size:13px}
         </button>
         <div style="font-size:11px;color:var(--text3)">After this, PIN login works without Google on this device</div>
       </div>
-      <!-- Normal PIN entry panel -->
       <div id="pin-entry-panel">
         <p style="font-size:13px;color:var(--text2);text-align:center;margin-bottom:4px;line-height:1.6">Enter your PIN to load data from<br><strong style="color:var(--gold)" id="pin-acct-label">your Google Drive</strong></p>
         <div class="pin-dots" id="pin-dots">
-          <div class="pin-dot" id="pd0"></div>
-          <div class="pin-dot" id="pd1"></div>
-          <div class="pin-dot" id="pd2"></div>
-          <div class="pin-dot" id="pd3"></div>
-          <div class="pin-dot" id="pd4"></div>
-          <div class="pin-dot" id="pd5"></div>
+          <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
+          <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
+          <div class="pin-dot" id="pd4"></div><div class="pin-dot" id="pd5"></div>
         </div>
         <div class="pin-error" id="pin-error"></div>
         <div class="pin-pad">
@@ -935,8 +930,7 @@ td{padding:11px 14px;font-size:13px}
         </div>
       </div>
     </div>
-
-    <p class="auth-note"><strong>🔒 Privacy first.</strong> Your data is stored in <em>your</em> Google Drive — not on any server. Works on PC, tablet, and phone — same account, same data.</p>
+        <p class="auth-note"><strong>🔒 Privacy first.</strong> Your data is stored in <em>your</em> Google Drive — not on any server. Works on PC, tablet, and phone — same account, same data.</p>
   </div>
 </div>
 
@@ -2391,7 +2385,7 @@ function closeMoreMenu(){
 // ════════════════════════════════════════════
 //  FORMAT
 // ════════════════════════════════════════════
-function fmt(n){ const c=CURR[S.currency]; return `${c.s} ${Math.abs(n).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})}`; }
+function fmt(n){ const c=CURR[S.currency]; const abs=Math.abs(n); return `${n<0?'-':''}${c.s} ${abs.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})}`; }
 function fmtDate(d){
   if(!d) return '—';
   const parts=d.split('-'); if(parts.length<3) return d;
@@ -3143,7 +3137,7 @@ function genReport(type){
       if(s===0) return;
       liabTotal+=s;
       html+=sub(type,s,'var(--coral)');
-      accts.forEach(a=>{ if(a.balance!==0) html+=row(a.name+(a.institution?' ('+a.institution+')':''),a.balance); });
+      accts.forEach(a=>{ if(a.balance!==0) html+=`<tr><td style="padding-left:32px;font-size:12px;color:var(--text3)">${esc(a.name+(a.institution?' ('+a.institution+')':''))}</td><td style="text-align:right;font-size:12px;color:${a.balance<0?'var(--teal)':'var(--text3)'}">${fmt(a.balance)}</td></tr>`; });
     });
     Object.keys(lByType).filter(t=>!LIAB_ORDER.includes(t)).sort().forEach(type=>{
       const accts=(lByType[type]||[]).sort((a,b)=>a.name.localeCompare(b.name));
@@ -3611,7 +3605,7 @@ function renderNetWorth(){
     if(!accts.length) return;
     const sub=accts.reduce((s,a)=>s+a.balance,0); liabTotal+=sub;
     html+=`<tr><td class="bs-subsection">${LIAB_ICONS[type]||'◈'} ${type}</td><td class="bs-right" style="color:var(--coral)">${fmt(sub)}</td></tr>`;
-    accts.forEach(a=>html+=`<tr><td class="bs-subsection" style="padding-left:36px;color:var(--text3);font-size:12px">${esc(a.name)}</td><td class="bs-right" style="color:var(--text3);font-size:12px">${fmt(a.balance)}</td></tr>`);
+    accts.forEach(a=>html+=`<tr><td class="bs-subsection" style="padding-left:36px;color:var(--text3);font-size:12px">${esc(a.name)}</td><td class="bs-right" style="color:${a.balance<0?'var(--teal)':'var(--text3)'};font-size:12px">${fmt(a.balance)}</td></tr>`);
   });
   Object.keys(lByType).filter(t=>!LIAB_ORDER.includes(t)).sort().forEach(type=>{
     const accts=(lByType[type]||[]).sort((a,b)=>a.name.localeCompare(b.name));
@@ -3630,7 +3624,7 @@ function renderNetWorth(){
   if(!S.accounts.filter(a=>a.kind==='asset').length){ assetBd.innerHTML='<div style="color:var(--text3);font-size:13px">No assets added yet</div>'; }
   else { assetBd.innerHTML=S.accounts.filter(a=>a.kind==='asset').map(a=>`<div class="catrow"><div class="cdot" style="background:${ASSET_COLORS[a.type]||'#636e72'}"></div><div class="cname">${esc(a.name)}</div><div class="camt" style="color:var(--teal)">${fmt(a.balance)}</div></div>`).join(''); }
   if(!S.accounts.filter(a=>a.kind==='liability').length){ liabBd.innerHTML='<div style="color:var(--text3);font-size:13px">No liabilities added yet</div>'; }
-  else { liabBd.innerHTML=S.accounts.filter(a=>a.kind==='liability').map(a=>`<div class="catrow"><div class="cdot" style="background:${LIAB_COLORS[a.type]||'#636e72'}"></div><div class="cname">${esc(a.name)}</div><div class="camt" style="color:var(--coral)">${fmt(a.balance)}</div></div>`).join(''); }
+  else { liabBd.innerHTML=S.accounts.filter(a=>a.kind==='liability').map(a=>`<div class="catrow"><div class="cdot" style="background:${LIAB_COLORS[a.type]||'#636e72'}"></div><div class="cname">${esc(a.name)}</div><div class="camt" style="color:${a.balance<0?'var(--teal)':'var(--coral)'}">${fmt(a.balance)}</div></div>`).join(''); }
 }
 
 // ── ASSETS PAGE ──
@@ -3714,7 +3708,7 @@ function accountCard(a){
       ${fxSub}
     </div>
     <div class="account-balance">
-      <div class="account-bal-val ${isLiab?'neg':'pos'}">${fmt(a.balance)}</div>
+      <div class="account-bal-val ${isLiab?(a.balance<0?'pos':'neg'):'pos'}">${fmt(a.balance)}</div>
       ${a.payment?`<div class="account-bal-sub">Rs ${a.payment.toLocaleString()}/mo</div>`:''}
     </div>
   </div>`;
@@ -4413,12 +4407,25 @@ function bankConfirm(id){
   if(t.category==='__transfer__' && !t.transferToId){
     toast('Select which account the transfer goes to/from','err'); return;
   }
-  // Update balance for non-importable accounts (Cash, Wallet, Property, Vehicle, Pay Later etc.)
+  // Update balance for non-importable accounts
   if(t.category==='__transfer__' && t.transferToId && !t.confirmed){
     const destAcct = S.accounts.find(a=>a.id===t.transferToId);
     if(destAcct && isManualAccount(destAcct)){
-      if(t.type==='debit')  destAcct.balance += t.amount;
-      else                  destAcct.balance -= t.amount;
+      if(destAcct.kind==='liability'){
+        // Normal liability: debit payment decreases balance
+        // Contra-liability (negative balance): debit increases balance toward zero
+        if(destAcct.balance < 0){
+          if(t.type==='debit')  destAcct.balance += t.amount;
+          else                  destAcct.balance -= t.amount;
+        } else {
+          if(t.type==='debit')  destAcct.balance -= t.amount;
+          else                  destAcct.balance += t.amount;
+        }
+      } else {
+        // Asset/Cash: debit from bank = increase destination (e.g. Wallet)
+        if(t.type==='debit')  destAcct.balance += t.amount;
+        else                  destAcct.balance -= t.amount;
+      }
       toast(`✓ ${destAcct.name} updated → ${fmt(destAcct.balance)}`,'ok');
     }
   }
@@ -4428,12 +4435,23 @@ function bankConfirm(id){
 function bankUnconfirm(id){
   const t=S.tx.find(x=>x.id===id); if(!t) return;
 
-  // Reverse only if destination was a Cash account
+  // Reverse balance on unconfirm
   if(t.category==='__transfer__' && t.transferToId && t.confirmed){
     const destAcct = S.accounts.find(a=>a.id===t.transferToId);
     if(destAcct && isManualAccount(destAcct)){
-      if(t.type==='debit')  destAcct.balance -= t.amount;
-      else                  destAcct.balance += t.amount;
+      if(destAcct.kind==='liability'){
+        // Reverse of confirm — contra-liability handled too
+        if(destAcct.balance < 0 || (destAcct.balance===0 && t.type==='debit')){
+          if(t.type==='debit')  destAcct.balance -= t.amount;
+          else                  destAcct.balance += t.amount;
+        } else {
+          if(t.type==='debit')  destAcct.balance += t.amount;
+          else                  destAcct.balance -= t.amount;
+        }
+      } else {
+        if(t.type==='debit')  destAcct.balance -= t.amount;
+        else                  destAcct.balance += t.amount;
+      }
     }
   }
 
@@ -4499,8 +4517,13 @@ function bulkConfirm(){
     if(t.category==='__transfer__' && t.transferToId){
       const destAcct=S.accounts.find(a=>a.id===t.transferToId);
       if(destAcct && isManualAccount(destAcct)){
-        if(t.type==='debit') destAcct.balance+=t.amount;
-        else destAcct.balance-=t.amount;
+        if(destAcct.kind==='liability'){
+          if(t.type==='debit') destAcct.balance-=t.amount;
+          else destAcct.balance+=t.amount;
+        } else {
+          if(t.type==='debit') destAcct.balance+=t.amount;
+          else destAcct.balance-=t.amount;
+        }
         balUpdates++;
       }
     }
@@ -4777,9 +4800,16 @@ function saveTransfer(){
   const fa = S.accounts.find(a=>a.id===fromId);
   const ta = S.accounts.find(a=>a.id===toId);
   if(!fa||!ta){ toast('Account not found','err'); return; }
-  // Update balances immediately
-  fa.balance -= amt;
-  ta.balance += amt;
+  // Update balances:
+  // Asset source: balance decreases (money going out)
+  // Asset destination: balance increases (money coming in)
+  // Liability source: balance decreases (reducing what you owe — e.g. paying off)
+  // Liability destination: balance decreases (reducing what you owe — e.g. making a payment)
+  // Rule: FROM always reduces balance, TO always reduces balance for liabilities / increases for assets
+  if(fa.kind==='asset')     fa.balance -= amt;
+  else                      fa.balance -= amt; // liability from: paying it off = balance goes down
+  if(ta.kind==='asset')     ta.balance += amt;
+  else                      ta.balance -= amt; // liability to: paying it off = balance goes down
   // Record transfer
   if(!S.transfers) S.transfers=[];
   const tr = {id:uid(),date,fromId,toId,amount:amt,note,fromName:fa.name,toName:ta.name};
@@ -4796,12 +4826,11 @@ function saveTransfer(){
 function deleteTransfer(id){
   const tr = (S.transfers||[]).find(t=>t.id===id); if(!tr) return;
   if(!confirm('Reverse this transfer? This will undo the balance changes.')) return;
-  // Reverse balance changes
   const fa = S.accounts.find(a=>a.id===tr.fromId);
   const ta = S.accounts.find(a=>a.id===tr.toId);
-  if(fa) fa.balance += tr.amount;
-  if(ta) ta.balance -= tr.amount;
-  // Remove linked transactions
+  // Reverse using same logic as save
+  if(fa){ if(fa.kind==='asset') fa.balance+=tr.amount; else fa.balance+=tr.amount; }
+  if(ta){ if(ta.kind==='asset') ta.balance-=tr.amount; else ta.balance+=tr.amount; }
   S.tx = S.tx.filter(t=>t.transferId!==id);
   S.transfers = S.transfers.filter(t=>t.id!==id);
   save(); toast('Transfer reversed','ok'); renderTransfers();
