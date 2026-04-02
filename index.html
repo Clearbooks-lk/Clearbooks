@@ -4407,26 +4407,16 @@ function bankConfirm(id){
   if(t.category==='__transfer__' && !t.transferToId){
     toast('Select which account the transfer goes to/from','err'); return;
   }
-  // Update balance for non-importable accounts
   if(t.category==='__transfer__' && t.transferToId && !t.confirmed){
     const destAcct = S.accounts.find(a=>a.id===t.transferToId);
     if(destAcct && isManualAccount(destAcct)){
+      // Liability: payment (debit) decreases balance. Asset: payment (debit) increases balance.
       if(destAcct.kind==='liability'){
-        // Normal liability: debit payment decreases balance
-        // Contra-liability (negative balance): debit increases balance toward zero
-        if(destAcct.balance < 0){
-          if(t.type==='debit')  destAcct.balance += t.amount;
-          else                  destAcct.balance -= t.amount;
-        } else {
-          if(t.type==='debit')  destAcct.balance -= t.amount;
-          else                  destAcct.balance += t.amount;
-        }
+        destAcct.balance += (t.type==='debit' ? -t.amount : t.amount);
       } else {
-        // Asset/Cash: debit from bank = increase destination (e.g. Wallet)
-        if(t.type==='debit')  destAcct.balance += t.amount;
-        else                  destAcct.balance -= t.amount;
+        destAcct.balance += (t.type==='debit' ? t.amount : -t.amount);
       }
-      toast(`✓ ${destAcct.name} updated → ${fmt(destAcct.balance)}`,'ok');
+      toast(`✓ ${destAcct.name} → ${fmt(destAcct.balance)}`,'ok');
     }
   }
   t.confirmed=true; save(); renderBanking(); updUncatBadge();
@@ -4439,18 +4429,11 @@ function bankUnconfirm(id){
   if(t.category==='__transfer__' && t.transferToId && t.confirmed){
     const destAcct = S.accounts.find(a=>a.id===t.transferToId);
     if(destAcct && isManualAccount(destAcct)){
+      // Reverse of confirm
       if(destAcct.kind==='liability'){
-        // Reverse of confirm — contra-liability handled too
-        if(destAcct.balance < 0 || (destAcct.balance===0 && t.type==='debit')){
-          if(t.type==='debit')  destAcct.balance -= t.amount;
-          else                  destAcct.balance += t.amount;
-        } else {
-          if(t.type==='debit')  destAcct.balance += t.amount;
-          else                  destAcct.balance -= t.amount;
-        }
+        destAcct.balance += (t.type==='debit' ? t.amount : -t.amount);
       } else {
-        if(t.type==='debit')  destAcct.balance -= t.amount;
-        else                  destAcct.balance += t.amount;
+        destAcct.balance += (t.type==='debit' ? -t.amount : t.amount);
       }
     }
   }
@@ -4518,11 +4501,9 @@ function bulkConfirm(){
       const destAcct=S.accounts.find(a=>a.id===t.transferToId);
       if(destAcct && isManualAccount(destAcct)){
         if(destAcct.kind==='liability'){
-          if(t.type==='debit') destAcct.balance-=t.amount;
-          else destAcct.balance+=t.amount;
+          destAcct.balance += (t.type==='debit' ? -t.amount : t.amount);
         } else {
-          if(t.type==='debit') destAcct.balance+=t.amount;
-          else destAcct.balance-=t.amount;
+          destAcct.balance += (t.type==='debit' ? t.amount : -t.amount);
         }
         balUpdates++;
       }
@@ -4565,8 +4546,11 @@ function bulkTransferApply(){
     if(match) linked++;
     if(doConfirm && !t.confirmed){
       if(destAcct && isManualAccount(destAcct)){
-        if(t.type==='debit')  destAcct.balance += t.amount;
-        else                  destAcct.balance -= t.amount;
+        if(destAcct.kind==='liability'){
+          destAcct.balance += (t.type==='debit' ? -t.amount : t.amount);
+        } else {
+          destAcct.balance += (t.type==='debit' ? t.amount : -t.amount);
+        }
       }
       t.confirmed = true;
     }
