@@ -1587,37 +1587,119 @@ td{padding:11px 14px;font-size:13px}
 
         <!-- RULES PANEL -->
         <div id="bank-rules-panel" style="display:none">
-          <div style="max-width:600px">
-            <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">Auto-rules automatically categorise new transactions when their description contains a keyword.</p>
+          <div style="max-width:680px">
+            <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">Auto-rules match incoming transactions and apply a category, transfer tag, and optional auto-confirm. Rules are checked in order — first match wins.</p>
 
-            <!-- Category Rules -->
+            <!-- Category Rule Builder -->
             <div class="card" style="margin-bottom:16px">
-              <div class="card-hd"><span class="card-title">Category Rules</span></div>
+              <div class="card-hd"><span class="card-title">➕ New Category Rule</span></div>
               <div class="card-body">
-                <div class="frow" style="margin-bottom:10px">
-                  <div class="form-group" style="margin:0"><label class="form-label">If description contains</label><input class="form-input" id="rule-kw" placeholder="e.g. Dialog, Keells…"></div>
-                  <div class="form-group" style="margin:0"><label class="form-label">Assign category</label><select class="form-input" id="rule-cat"></select></div>
+                <!-- Row 1: keyword + match type + tx type -->
+                <div style="display:grid;grid-template-columns:1fr auto auto;gap:10px;margin-bottom:10px;align-items:end">
+                  <div class="form-group" style="margin:0">
+                    <label class="form-label">Description keyword</label>
+                    <input class="form-input" id="rule-kw" placeholder="e.g. Dialog, Keells, KOKO…">
+                  </div>
+                  <div class="form-group" style="margin:0">
+                    <label class="form-label">Match type</label>
+                    <select class="form-input" id="rule-match">
+                      <option value="contains">Contains</option>
+                      <option value="startswith">Starts with</option>
+                      <option value="exact">Exact</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="margin:0">
+                    <label class="form-label">Tx type</label>
+                    <select class="form-input" id="rule-txtype">
+                      <option value="">Any</option>
+                      <option value="debit">Debit only</option>
+                      <option value="credit">Credit only</option>
+                    </select>
+                  </div>
                 </div>
-                <button class="btn btn-gold btn-sm" onclick="addRule()">+ Add Rule</button>
+                <!-- Row 2: category + amount range -->
+                <div style="display:grid;grid-template-columns:1fr 100px 100px;gap:10px;margin-bottom:10px;align-items:end">
+                  <div class="form-group" style="margin:0">
+                    <label class="form-label">Assign category</label>
+                    <select class="form-input" id="rule-cat"></select>
+                  </div>
+                  <div class="form-group" style="margin:0">
+                    <label class="form-label">Min amount</label>
+                    <input class="form-input" type="number" id="rule-min" placeholder="0" min="0" step="0.01">
+                  </div>
+                  <div class="form-group" style="margin:0">
+                    <label class="form-label">Max amount</label>
+                    <input class="form-input" type="number" id="rule-max" placeholder="Any" min="0" step="0.01">
+                  </div>
+                </div>
+                <!-- Row 3: auto-confirm toggle -->
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);margin-bottom:12px;cursor:pointer">
+                  <input type="checkbox" id="rule-autoconfirm" style="accent-color:var(--gold);width:15px;height:15px">
+                  Auto-confirm matched transactions
+                </label>
+                <button class="btn btn-gold btn-sm" onclick="addRule()">+ Add Category Rule</button>
               </div>
             </div>
 
-            <!-- Transfer Rules -->
+            <!-- Transfer Rule Builder -->
             <div class="card" style="margin-bottom:16px">
-              <div class="card-hd"><span class="card-title">⇄ Transfer Rules</span></div>
+              <div class="card-hd"><span class="card-title">⇄ New Transfer Rule</span></div>
               <div class="card-body">
-                <p style="font-size:12px;color:var(--text3);margin-bottom:12px">Auto-tag transactions as transfers to a specific account when description matches.</p>
-                <div class="frow" style="margin-bottom:10px">
-                  <div class="form-group" style="margin:0"><label class="form-label">If description contains</label><input class="form-input" id="xfer-rule-kw" placeholder="e.g. ATM, Cash Withdrawal…"></div>
-                  <div class="form-group" style="margin:0"><label class="form-label">Transfer to/from account</label><select class="form-input" id="xfer-rule-acct"><option value="">— Select account —</option></select></div>
+                <div style="display:grid;grid-template-columns:1fr auto auto;gap:10px;margin-bottom:10px;align-items:end">
+                  <div class="form-group" style="margin:0">
+                    <label class="form-label">Description keyword</label>
+                    <input class="form-input" id="xfer-rule-kw" placeholder="e.g. ATM, Cash Withdrawal…">
+                  </div>
+                  <div class="form-group" style="margin:0">
+                    <label class="form-label">Match type</label>
+                    <select class="form-input" id="xfer-rule-match">
+                      <option value="contains">Contains</option>
+                      <option value="startswith">Starts with</option>
+                      <option value="exact">Exact</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="margin:0">
+                    <label class="form-label">Tx type</label>
+                    <select class="form-input" id="xfer-rule-txtype">
+                      <option value="">Any</option>
+                      <option value="debit">Debit only</option>
+                      <option value="credit">Credit only</option>
+                    </select>
+                  </div>
                 </div>
+                <div style="display:grid;grid-template-columns:1fr 100px 100px;gap:10px;margin-bottom:10px;align-items:end">
+                  <div class="form-group" style="margin:0">
+                    <label class="form-label">Transfer to/from account</label>
+                    <select class="form-input" id="xfer-rule-acct"><option value="">— Select account —</option></select>
+                  </div>
+                  <div class="form-group" style="margin:0">
+                    <label class="form-label">Min amount</label>
+                    <input class="form-input" type="number" id="xfer-rule-min" placeholder="0" min="0" step="0.01">
+                  </div>
+                  <div class="form-group" style="margin:0">
+                    <label class="form-label">Max amount</label>
+                    <input class="form-input" type="number" id="xfer-rule-max" placeholder="Any" min="0" step="0.01">
+                  </div>
+                </div>
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);margin-bottom:12px;cursor:pointer">
+                  <input type="checkbox" id="xfer-rule-autoconfirm" style="accent-color:var(--gold);width:15px;height:15px">
+                  Auto-confirm matched transactions
+                </label>
                 <button class="btn btn-gold btn-sm" onclick="addXferRule()">+ Add Transfer Rule</button>
               </div>
             </div>
 
-            <div class="card-title" style="margin-bottom:10px">Active Rules</div>
-            <div id="rules-list"></div>
-            <div style="margin-top:16px"><button class="btn btn-ghost btn-sm" onclick="applyRulesToAll()">↻ Re-apply All Rules to Existing Transactions</button></div>
+            <!-- Active Rules List -->
+            <div class="card">
+              <div class="card-hd">
+                <span class="card-title">Active Rules</span>
+                <span id="rules-count" style="font-size:12px;color:var(--text3)"></span>
+              </div>
+              <div id="rules-list" style="padding:12px 16px"></div>
+              <div style="padding:0 16px 14px;display:flex;gap:10px;flex-wrap:wrap">
+                <button class="btn btn-ghost btn-sm" onclick="applyRulesToAll()">↻ Re-apply All Rules to Existing Transactions</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1663,6 +1745,13 @@ td{padding:11px 14px;font-size:13px}
             <div class="empty-title">No journal entries yet</div>
             <div class="empty-sub">Create your first journal entry above</div>
           </div>
+        </div>
+        <div class="card" id="recurring-card" style="margin-top:16px;display:none">
+          <div class="card-hd">
+            <span class="card-title">🔁 Recurring Templates</span>
+            <span style="font-size:12px;color:var(--text3)" id="rj-count">0 templates</span>
+          </div>
+          <div id="recurring-list"></div>
         </div>
       </div>
 
@@ -1854,6 +1943,31 @@ td{padding:11px 14px;font-size:13px}
     </div>
     <div id="je-lkr-equiv" style="display:none;text-align:right;font-size:11px;color:var(--text3);margin-top:4px;font-family:'DM Mono',monospace"></div>
     <div id="je-balance-status" style="text-align:center;font-size:13px;font-weight:600;padding:8px;border-radius:8px;margin-top:8px;display:none"></div>
+    <!-- Recurring section -->
+    <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:12px">
+        <input type="checkbox" id="je-recurring" onchange="toggleRecurringUI()" style="width:16px;height:16px;accent-color:var(--gold);cursor:pointer">
+        <span style="font-size:13px;font-weight:600;color:var(--text)">🔁 Repeating Journal Entry</span>
+      </label>
+      <div id="je-recurring-opts" style="display:none;background:rgba(232,184,109,0.06);border:1px solid rgba(232,184,109,0.18);border-radius:10px;padding:14px">
+        <div class="frow" style="margin-bottom:10px">
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Repeat Frequency</label>
+            <select class="form-input" id="je-freq">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly" selected>Monthly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Repeat Until (optional)</label>
+            <input class="form-input" type="date" id="je-until" placeholder="No end date">
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--text3)">⚠ Saving will create a recurring template. Entries will be auto-posted each time they are due when you open the app.</div>
+      </div>
+    </div>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px">
       <button class="btn btn-ghost" onclick="closeModal('journal-modal')">Cancel</button>
       <button class="btn btn-gold" onclick="saveJournalEntry()">📒 Post Journal Entry</button>
@@ -2128,6 +2242,7 @@ let S = {
   accounts: [],
   transfers: [],
   journals: [],
+  recurringJournals: [],
   reconAcctId: null,
   pinHash: null,       // hashed PIN — syncs to Drive so all devices get it
   pinLen: 4,           // PIN length
@@ -2237,7 +2352,7 @@ async function syncDriveSilent(){
   if(!S.driveConnected||!S.driveToken) return;
   try{
     const folderId = await ensureDriveFolder();
-    const data = JSON.stringify({tx:S.tx,budgets:S.budgets,cats:S.cats,currency:S.currency,dateFmt:S.dateFmt,lastSync:new Date().toISOString(),accounts:S.accounts,reconHistory:S.reconHistory,transfers:S.transfers,journals:S.journals,pinHash:S.pinHash,pinLen:S.pinLen,pinName:S.pinName,incCats:S.incCats,expCats:S.expCats},null,2);
+    const data = JSON.stringify({tx:S.tx,budgets:S.budgets,cats:S.cats,currency:S.currency,dateFmt:S.dateFmt,lastSync:new Date().toISOString(),accounts:S.accounts,reconHistory:S.reconHistory,transfers:S.transfers,journals:S.journals,recurringJournals:S.recurringJournals,pinHash:S.pinHash,pinLen:S.pinLen,pinName:S.pinName,incCats:S.incCats,expCats:S.expCats},null,2);
     if(S.driveFileId){
       const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${S.driveFileId}?uploadType=media`,{method:'PATCH',headers:{'Authorization':'Bearer '+S.driveToken,'Content-Type':'application/json'},body:data});
       if(res.status===404){ S.driveFileId=null; await syncDriveSilent(); return; } // file deleted, recreate
@@ -3390,7 +3505,7 @@ async function syncDrive(){
   btn.innerHTML='<span class="spin">↻</span> Syncing…'; btn.disabled=true;
   try{
     const folderId=await ensureDriveFolder();
-    const data=JSON.stringify({tx:S.tx,budgets:S.budgets,cats:S.cats,currency:S.currency,dateFmt:S.dateFmt,lastSync:new Date().toISOString(),accounts:S.accounts,reconHistory:S.reconHistory,transfers:S.transfers,journals:S.journals,pinHash:S.pinHash,pinLen:S.pinLen,pinName:S.pinName,incCats:S.incCats,expCats:S.expCats},null,2);
+    const data=JSON.stringify({tx:S.tx,budgets:S.budgets,cats:S.cats,currency:S.currency,dateFmt:S.dateFmt,lastSync:new Date().toISOString(),accounts:S.accounts,reconHistory:S.reconHistory,transfers:S.transfers,journals:S.journals,recurringJournals:S.recurringJournals,pinHash:S.pinHash,pinLen:S.pinLen,pinName:S.pinName,incCats:S.incCats,expCats:S.expCats},null,2);
     if(S.driveFileId){
       // Update existing
       await fetch(`https://www.googleapis.com/upload/drive/v3/files/${S.driveFileId}?uploadType=media`,{method:'PATCH',headers:{'Authorization':'Bearer '+S.driveToken,'Content-Type':'application/json'},body:data});
@@ -3445,6 +3560,7 @@ async function loadFromDrive(){
     if(d.reconHistory) S.reconHistory=d.reconHistory;
     if(d.transfers)    S.transfers=d.transfers;
     if(d.journals)     S.journals=d.journals;
+    if(d.recurringJournals) S.recurringJournals=d.recurringJournals;
     if(d.pinHash)      S.pinHash=d.pinHash;
     if(d.pinLen)       S.pinLen=d.pinLen;
     if(d.pinName)      S.pinName=d.pinName;
@@ -3535,13 +3651,13 @@ async function loadFromDriveSilent(){
     if(d.reconHistory) S.reconHistory=d.reconHistory;
     if(d.transfers) S.transfers=d.transfers;
     if(d.journals) S.journals=d.journals;
+    if(d.recurringJournals) S.recurringJournals=d.recurringJournals;
     if(d.pinHash) S.pinHash=d.pinHash;
     if(d.pinLen) S.pinLen=d.pinLen;
     if(d.pinName) S.pinName=d.pinName;
     if(d.incCats) S.incCats=d.incCats;
     if(d.expCats) S.expCats=d.expCats;
     save();
-    go('dashboard');  // refresh view with new data
   }catch(e){ console.error('Silent load failed:',e); }
 }
 
@@ -4565,79 +4681,136 @@ function addXferRule(){
   const kw = document.getElementById('xfer-rule-kw').value.trim();
   const toAcctId = document.getElementById('xfer-rule-acct').value;
   if(!kw||!toAcctId){ toast('Enter a keyword and select an account','err'); return; }
+  const match       = document.getElementById('xfer-rule-match').value || 'contains';
+  const txtype      = document.getElementById('xfer-rule-txtype').value || '';
+  const minAmt      = parseFloat(document.getElementById('xfer-rule-min').value)||0;
+  const maxAmt      = parseFloat(document.getElementById('xfer-rule-max').value)||0;
+  const autoconfirm = document.getElementById('xfer-rule-autoconfirm').checked;
   if(!S.rules) S.rules=[];
-  if(S.rules.find(r=>r.keyword.toLowerCase()===kw.toLowerCase()&&r.isTransfer)){ toast('Rule already exists','err'); return; }
-  S.rules.push({keyword:kw, category:'__transfer__', transferToId:toAcctId, isTransfer:true});
-  save(); document.getElementById('xfer-rule-kw').value=''; renderRules();
+  S.rules.push({keyword:kw, match, txtype, minAmt, maxAmt, autoconfirm, category:'__transfer__', transferToId:toAcctId, isTransfer:true});
+  save();
+  document.getElementById('xfer-rule-kw').value='';
+  document.getElementById('xfer-rule-min').value='';
+  document.getElementById('xfer-rule-max').value='';
+  document.getElementById('xfer-rule-autoconfirm').checked=false;
+  renderRules();
   toast(`✓ Transfer rule added — "${kw}" → ${S.accounts.find(a=>a.id===toAcctId)?.name||''}`, 'ok');
+}
+
+function ruleMatches(r, t){
+  // Check tx type filter
+  if(r.txtype && t.type !== r.txtype) return false;
+  // Check amount range
+  if(r.minAmt && r.minAmt>0 && t.amount < r.minAmt) return false;
+  if(r.maxAmt && r.maxAmt>0 && t.amount > r.maxAmt) return false;
+  // Check keyword match
+  const desc = (t.description||'').toLowerCase();
+  const kw   = (r.keyword||'').toLowerCase();
+  const mt   = r.match || 'contains';
+  if(mt==='contains'   && !desc.includes(kw))   return false;
+  if(mt==='startswith' && !desc.startsWith(kw)) return false;
+  if(mt==='exact'      && desc !== kw)           return false;
+  return true;
 }
 
 function renderRules(){
   const sel = document.getElementById('rule-cat');
   if(sel) sel.innerHTML = S.cats.map(c=>`<option value="${c}">${c}</option>`).join('');
-  // Populate transfer rule account selector
   const xferSel = document.getElementById('xfer-rule-acct');
   if(xferSel) xferSel.innerHTML = '<option value="">— Select account —</option>' +
-    S.accounts.map(a=>`<option value="${a.id}">${ASSET_ICONS[a.type]||'◈'} ${esc(a.name)}</option>`).join('');
+    S.accounts.map(a=>`<option value="${a.id}">${ASSET_ICONS[a.type]||LIAB_ICONS[a.type]||'◈'} ${esc(a.name)}</option>`).join('');
   const list = document.getElementById('rules-list');
+  const cnt  = document.getElementById('rules-count');
   if(!list) return;
-  if(!S.rules.length){ list.innerHTML='<p style="font-size:13px;color:var(--text3)">No rules yet.</p>'; return; }
+  if(cnt) cnt.textContent = (S.rules||[]).length + ' rules';
+  if(!S.rules||!S.rules.length){ list.innerHTML='<p style="font-size:13px;color:var(--text3);padding:4px 0">No rules yet. Add one above.</p>'; return; }
+  const matchLabel = {contains:'contains',startswith:'starts with',exact:'exact match'};
   list.innerHTML = S.rules.map((r,i)=>{
-    if(r.isTransfer){
-      const acctName = S.accounts.find(a=>a.id===r.transferToId)?.name||r.transferToId;
-      return `<div class="rule-chip">
-        <span>⇄ If contains <strong style="color:var(--text)">"${esc(r.keyword)}"</strong> → Transfer to <strong style="color:var(--sky)">${esc(acctName)}</strong></span>
-        <span class="rule-chip-del" onclick="delRule(${i})">✕</span>
-      </div>`;
-    }
-    return `<div class="rule-chip">
-      <span>If contains <strong style="color:var(--text)">"${esc(r.keyword)}"</strong> → <strong style="color:var(--gold)">${esc(r.category)}</strong></span>
-      <span class="rule-chip-del" onclick="delRule(${i})">✕</span>
+    const isFirst = i===0, isLast = i===S.rules.length-1;
+    const acctName  = r.isTransfer ? (S.accounts.find(a=>a.id===r.transferToId)?.name||r.transferToId) : '';
+    const mt        = matchLabel[r.match||'contains'] || 'contains';
+    const conditions = [
+      `desc <strong style="color:var(--text)">${mt}</strong> <strong style="color:var(--gold)">"${esc(r.keyword)}"</strong>`,
+      r.txtype ? `· ${r.txtype} only` : '',
+      (r.minAmt&&r.minAmt>0) ? `· min Rs ${r.minAmt.toLocaleString()}` : '',
+      (r.maxAmt&&r.maxAmt>0) ? `· max Rs ${r.maxAmt.toLocaleString()}` : '',
+    ].filter(Boolean).join(' ');
+    const action = r.isTransfer
+      ? `⇄ Transfer → <strong style="color:var(--sky)">${esc(acctName)}</strong>`
+      : `→ <strong style="color:var(--gold)">${esc(r.category)}</strong>`;
+    const badges = [
+      r.autoconfirm ? `<span style="font-size:10px;padding:1px 6px;border-radius:8px;background:rgba(0,201,167,.15);color:var(--teal)">✓ auto-confirm</span>` : '',
+    ].filter(Boolean).join(' ');
+    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <button style="background:var(--glass);border:1px solid var(--border);color:var(--text2);border-radius:4px;width:22px;height:18px;cursor:pointer;font-size:10px;line-height:1" onclick="moveRule(${i},-1)" ${isFirst?'disabled style="opacity:.3;cursor:default"':''}>▲</button>
+        <button style="background:var(--glass);border:1px solid var(--border);color:var(--text2);border-radius:4px;width:22px;height:18px;cursor:pointer;font-size:10px;line-height:1" onclick="moveRule(${i},1)"  ${isLast ?'disabled style="opacity:.3;cursor:default"':''}>▼</button>
+      </div>
+      <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);min-width:18px">#${i+1}</span>
+      <div style="flex:1;font-size:12px;color:var(--text2);line-height:1.7">${conditions} ${action} ${badges}</div>
+      <button class="act-btn act-del" onclick="delRule(${i})">✕</button>
     </div>`;
   }).join('');
 }
 
 function addRule(){
-  const kw=document.getElementById('rule-kw').value.trim();
-  const cat=document.getElementById('rule-cat').value;
+  const kw  = document.getElementById('rule-kw').value.trim();
+  const cat = document.getElementById('rule-cat').value;
   if(!kw||!cat){ toast('Enter a keyword and category','err'); return; }
-  if(S.rules.find(r=>r.keyword.toLowerCase()===kw.toLowerCase())){ toast('Rule already exists','err'); return; }
-  S.rules.push({keyword:kw,category:cat});
-  save(); document.getElementById('rule-kw').value=''; renderRules();
+  const match       = document.getElementById('rule-match').value || 'contains';
+  const txtype      = document.getElementById('rule-txtype').value || '';
+  const minAmt      = parseFloat(document.getElementById('rule-min').value)||0;
+  const maxAmt      = parseFloat(document.getElementById('rule-max').value)||0;
+  const autoconfirm = document.getElementById('rule-autoconfirm').checked;
+  if(!S.rules) S.rules=[];
+  S.rules.push({keyword:kw, match, txtype, minAmt, maxAmt, autoconfirm, category:cat});
+  save();
+  document.getElementById('rule-kw').value='';
+  document.getElementById('rule-min').value='';
+  document.getElementById('rule-max').value='';
+  document.getElementById('rule-autoconfirm').checked=false;
+  renderRules();
   toast(`Rule added: "${kw}" → ${cat}`,'ok');
+}
+
+function moveRule(i, dir){
+  const j = i + dir;
+  if(j<0||j>=S.rules.length) return;
+  [S.rules[i], S.rules[j]] = [S.rules[j], S.rules[i]];
+  save(); renderRules();
 }
 
 function delRule(i){ S.rules.splice(i,1); save(); renderRules(); }
 
 function applyRulesToAll(){
-  let changed=0, linked=0;
+  let changed=0, linked=0, confirmed=0;
   S.tx.forEach(t=>{
-    const desc=(t.description||'').toLowerCase();
-    for(const r of S.rules){
-      if(desc.includes(r.keyword.toLowerCase())){
+    for(const r of (S.rules||[])){
+      if(ruleMatches(r, t)){
         t.category=r.category;
         if(r.isTransfer && r.transferToId){
           t.transferToId=r.transferToId;
           if(autoLinkTransfer(t)) linked++;
         }
+        if(r.autoconfirm && !t.confirmed){ t.confirmed=true; confirmed++; }
         changed++; break;
       }
     }
   });
   save(); renderBanking();
-  toast(`Applied rules — ${changed} updated${linked?' · '+linked+' auto-linked':''}`, 'ok');
+  toast(`Applied rules — ${changed} updated${linked?' · '+linked+' linked':''}${confirmed?' · '+confirmed+' confirmed':''}`, 'ok');
 }
 
 function applyRulesToNew(txList){
   txList.forEach(t=>{
-    const desc=(t.description||'').toLowerCase();
-    for(const r of S.rules){
-      if(desc.includes(r.keyword.toLowerCase())){
+    for(const r of (S.rules||[])){
+      if(ruleMatches(r, t)){
         t.category=r.category;
         if(r.isTransfer && r.transferToId){
           t.transferToId=r.transferToId;
           autoLinkTransfer(t);
         }
+        if(r.autoconfirm) t.confirmed=true;
         break;
       }
     }
@@ -4832,6 +5005,7 @@ function flashBal(acctId, dir){
 //  JOURNAL ENTRIES
 // ════════════════════════════════════════════
 function renderJournals(){
+  processRecurringJournals();
   const journals = [...(S.journals||[])].reverse();
   const el = document.getElementById('journal-list');
   const empty = document.getElementById('journal-empty');
@@ -4848,11 +5022,14 @@ function renderJournals(){
     const fxBadge = cur!=='LKR'
       ? `<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:rgba(116,185,255,0.12);color:var(--sky);margin-left:6px">${sym} @ ${rate} LKR</span>`
       : '';
+    const recurBadge = j.recurringId
+      ? `<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:rgba(232,184,109,0.12);color:var(--gold);margin-left:6px">🔁 Auto</span>`
+      : '';
     return `<div style="border-bottom:1px solid rgba(255,255,255,0.06)">
       <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer" onclick="toggleJE('je-${j.id}')">
         <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);width:80px;flex-shrink:0">${fmtDate(j.date)}</div>
         <div style="flex:1">
-          <div style="font-weight:600;font-size:13px">${esc(j.narration||j.ref||'Journal Entry')}${fxBadge}</div>
+          <div style="font-weight:600;font-size:13px">${esc(j.narration||j.ref||'Journal Entry')}${fxBadge}${recurBadge}</div>
           ${j.ref?`<div style="font-size:11px;color:var(--text3)">${esc(j.ref)} · ${j.lines.length} lines${cur!=='LKR'?' · Rs '+fmt(totalDrLKR)+' LKR equiv':''}</div>`:''}
         </div>
         <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--teal)">${cur!=='LKR'?sym+' ':''} ${totalDr.toFixed(2)}</div>
@@ -4882,6 +5059,7 @@ function renderJournals(){
       </div>
     </div>`;
   }).join('');
+  renderRecurring();
 }
 function toggleJE(id){ const el=document.getElementById(id); if(el) el.style.display=el.style.display==='none'?'block':'none'; }
 
@@ -4890,6 +5068,9 @@ function openJournalModal(editId){
     jeEditId = editId||null;
     document.getElementById('je-modal-title').textContent = editId?'Edit Journal Entry':'New Journal Entry';
     document.getElementById('je-lines-wrap').innerHTML = '';
+    // Reset recurring toggle
+    const recEl = document.getElementById('je-recurring');
+    if(recEl){ recEl.checked=false; document.getElementById('je-recurring-opts').style.display='none'; }
 
     if(editId){
       // Load existing journal entry data
@@ -5065,7 +5246,14 @@ function saveJournalEntry(){
     toast(`📒 Journal Entry ${ref} updated`,'ok');
   } else {
     // NEW entry
+    const isRecurring = document.getElementById('je-recurring').checked;
     const je = {id:uid(),date,ref,narration,lines:linesWithFX,currency:cur,rate};
+    if(isRecurring){
+      // Save as recurring template — don't post immediately (first post happens via processRecurringJournals)
+      save(); closeModal('journal-modal');
+      saveRecurringJournal(je);
+      return;
+    }
     S.journals.push(je);
     linesWithFX.forEach(l=>{
       const acct = S.accounts.find(a=>a.name===l.account);
@@ -5096,6 +5284,145 @@ function deleteJournal(id){
   });
   S.journals = S.journals.filter(x=>x.id!==id);
   save(); toast('Journal entry deleted','ok'); renderJournals();
+}
+
+// ════════════════════════════════════════════
+//  RECURRING JOURNALS
+// ════════════════════════════════════════════
+
+function toggleRecurringUI(){
+  const checked = document.getElementById('je-recurring').checked;
+  document.getElementById('je-recurring-opts').style.display = checked ? 'block' : 'none';
+}
+
+function nextRecurringDate(fromDate, freq){
+  const d = new Date(fromDate + 'T00:00:00');
+  if(freq==='daily')   d.setDate(d.getDate()+1);
+  if(freq==='weekly')  d.setDate(d.getDate()+7);
+  if(freq==='monthly') d.setMonth(d.getMonth()+1);
+  if(freq==='yearly')  d.setFullYear(d.getFullYear()+1);
+  return d.toISOString().slice(0,10);
+}
+
+function postRecurringJournal(rj){
+  // Post a single occurrence of a recurring journal, updating account balances
+  if(!S.journals) S.journals=[];
+  const nextRef = rj.ref + '-' + (rj.postCount||0+1).toString().padStart(3,'0');
+  const je = {
+    id: uid(),
+    date: rj.nextDate,
+    ref: nextRef,
+    narration: rj.narration,
+    lines: rj.lines,
+    currency: rj.currency||'LKR',
+    rate: rj.rate||1,
+    recurringId: rj.id
+  };
+  S.journals.push(je);
+  rj.lines.forEach(l=>{
+    const acct = S.accounts.find(a=>a.name===l.account);
+    if(acct){
+      if(acct.kind==='asset')    { acct.balance += (l.drLKR||l.dr||0) - (l.crLKR||l.cr||0); }
+      if(acct.kind==='liability'){ acct.balance += (l.crLKR||l.cr||0) - (l.drLKR||l.dr||0); }
+    }
+  });
+  rj.lastPosted = rj.nextDate;
+  rj.postCount  = (rj.postCount||0) + 1;
+  rj.nextDate   = nextRecurringDate(rj.nextDate, rj.freq);
+  // Disable if past end date
+  if(rj.until && rj.nextDate > rj.until) rj.active = false;
+}
+
+function processRecurringJournals(){
+  if(!S.recurringJournals) S.recurringJournals=[];
+  const todayStr = today();
+  let posted = 0;
+  S.recurringJournals.filter(rj=>rj.active).forEach(rj=>{
+    while(rj.nextDate <= todayStr){
+      if(rj.until && rj.nextDate > rj.until){ rj.active=false; break; }
+      postRecurringJournal(rj);
+      posted++;
+      // Safety: stop if something went wrong in date calc
+      if(!rj.active) break;
+    }
+  });
+  if(posted>0){
+    save();
+    toast(`🔁 ${posted} recurring journal${posted>1?'s':''} auto-posted`, 'ok');
+  }
+}
+
+function saveRecurringJournal(je){
+  if(!S.recurringJournals) S.recurringJournals=[];
+  const freq  = document.getElementById('je-freq').value;
+  const until = document.getElementById('je-until').value||null;
+  const rj = {
+    id: uid(),
+    active: true,
+    freq,
+    until,
+    nextDate: je.date,
+    narration: je.narration,
+    ref: je.ref,
+    lines: je.lines,
+    currency: je.currency,
+    rate: je.rate,
+    created: today(),
+    postCount: 0,
+    lastPosted: null
+  };
+  S.recurringJournals.push(rj);
+  save();
+  toast(`🔁 Recurring journal created — next post: ${fmtDate(rj.nextDate)}`,'ok');
+  renderJournals();
+}
+
+function renderRecurring(){
+  const list = (S.recurringJournals||[]);
+  const card = document.getElementById('recurring-card');
+  const el   = document.getElementById('recurring-list');
+  const cnt  = document.getElementById('rj-count');
+  if(!list.length){ card.style.display='none'; return; }
+  card.style.display='block';
+  cnt.textContent = list.filter(r=>r.active).length + ' active';
+  el.innerHTML = list.slice().reverse().map(rj=>{
+    const totalDr = (rj.lines||[]).reduce((s,l)=>s+(l.dr||0),0);
+    const cur = rj.currency||'LKR';
+    const sym = FX_CURRENCIES[cur]?.s||cur;
+    const freqLabel = {daily:'Daily',weekly:'Weekly',monthly:'Monthly',yearly:'Yearly'}[rj.freq]||rj.freq;
+    const statusBadge = rj.active
+      ? `<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(0,201,167,.15);color:var(--teal)">● Active</span>`
+      : `<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(255,255,255,.08);color:var(--text3)">Paused</span>`;
+    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.05)">
+      <div style="font-size:22px">🔁</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:13px">${esc(rj.narration||rj.ref)}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">
+          ${freqLabel} · Next: <span style="color:var(--gold)">${fmtDate(rj.nextDate)}</span>
+          ${rj.until?' · Until: '+fmtDate(rj.until):''}
+          ${rj.postCount?' · Posted '+rj.postCount+'×':''}
+        </div>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--teal);flex-shrink:0">${cur!=='LKR'?sym+' ':'Rs '}${totalDr.toFixed(2)}</div>
+      ${statusBadge}
+      <button class="btn btn-ghost btn-sm" onclick="togglePauseRecurring('${rj.id}')">${rj.active?'⏸ Pause':'▶ Resume'}</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteRecurring('${rj.id}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function togglePauseRecurring(id){
+  const rj = (S.recurringJournals||[]).find(x=>x.id===id); if(!rj) return;
+  rj.active = !rj.active;
+  save(); renderJournals();
+  toast(rj.active?'🔁 Recurring journal resumed':'⏸ Recurring journal paused','ok');
+}
+
+function deleteRecurring(id){
+  if(!confirm('Delete this recurring template? Past posted entries will remain.')) return;
+  S.recurringJournals = (S.recurringJournals||[]).filter(x=>x.id!==id);
+  save(); renderJournals();
+  toast('Recurring template deleted','ok');
 }
 // ════════════════════════════════════════════
 //  DIRECT ENTRY (Income / Expense to Bank)
